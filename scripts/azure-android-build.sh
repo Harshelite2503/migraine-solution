@@ -5,10 +5,10 @@
 set -euo pipefail
 BRANCH="${1:-main}"
 LOCATION="${LOCATION:-eastus}"
-SIZE="${VM_SIZE:-Standard_D8s_v5}"
+# Region:size pairs to try in order; Azure sometimes has no spare capacity for a size in a region.
+CANDIDATES="${VM_CANDIDATES:-eastus2:Standard_D8s_v5 westus2:Standard_D8s_v5 eastus2:Standard_D8as_v5 westus2:Standard_D8as_v5 eastus:Standard_D4s_v5 westus3:Standard_D4s_v5}"
 ART_RG="still-artifacts-rg"
 VM_RG="still-build-vm-rg"
-VM="still-build"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 az group create -n "$ART_RG" -l "$LOCATION" -o none
@@ -31,19 +31,30 @@ az group create -n "$VM_RG" -l "$LOCATION" -o none
 cleanup() { echo "Deleting the build VM…"; az group delete -n "$VM_RG" --yes --no-wait; }
 trap cleanup EXIT
 # No inbound ports: the VM is controlled only through Azure's run-command API.
-az vm create -g "$VM_RG" -n "$VM" --image Ubuntu2404 --size "$SIZE" --os-disk-size-gb 96 \
-  --admin-username still --generate-ssh-keys --nsg-rule NONE --public-ip-sku Standard -o none
+VM=""
+i=0
+for c in $CANDIDATES; do
+  i=$((i + 1)); loc="${c%%:*}"; size="${c#*:}"
+  echo "Trying $size in $loc…"
+  if az vm create -g "$VM_RG" -n "still-build-$i" -l "$loc" --image Canonical:ubuntu-24_04-lts:server:latest --size "$size" \
+      --os-disk-size-gb 96 --admin-username still --generate-ssh-keys --nsg-rule NONE --public-ip-sku Standard -o none; then
+    VM="still-build-$i"; echo "Created $size in $loc."; break
+  fi
+  echo "No capacity for $size in $loc; trying the next option."
+done
+[ -n "$VM" ] || { echo "Azure had no capacity for any VM option. Try again later or set VM_CANDIDATES."; exit 1; }
 
 SCRIPT="$(base64 -w0 < "$HERE/vm-build-android.sh")"
 az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript -o none --scripts \
-  "echo $SCRIPT | base64 -d > /root/build.sh && chmod +x /root/build.sh && nohup /root/build.sh '$BASE?$W_SAS' https://github.com/shivankur-code/migraine-solution '$BRANCH' > /var/log/still-build.log 2>&1 &"
+  "echo $SCRIPT | base64 -d > /root/build.sh && chmod +x /root/build.sh && setsid nohup /root/build.sh '$BASE?$W_SAS' https://github.com/shivankur-code/migraine-solution '$BRANCH' > /var/log/still-build.log 2>&1 < /dev/null &"
 
 echo "Building (usually 20–35 minutes)…"
 while true; do
   sleep 60
   OUT="$(az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript --scripts 'cat /var/log/still-build.status; tail -n 3 /var/log/still-build.log' --query 'value[0].message' -o tsv)"
   echo "$(date -u +%H:%M) $(printf '%s' "$OUT" | tr '\n' ' ' | cut -c1-200)"
-  case "$OUT" in *"done"*) break ;; *"failed"*) echo "Build failed. Log above."; exit 1 ;; esac
+  STATE="$(printf '%s\n' "$OUT" | grep -m1 -xE 'running|done|failed' || true)"
+  case "$STATE" in done) break ;; failed) echo "Build failed. Log above."; exit 1 ;; esac
 done
 echo
 echo "APK ready (link valid until $EXP_R):"
