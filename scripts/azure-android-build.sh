@@ -51,7 +51,7 @@ az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript -o non
 echo "Building (usually 20–35 minutes)…"
 while true; do
   sleep 60
-  OUT="$(az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript --scripts 'cat /var/log/still-build.status; tail -n 3 /var/log/still-build.log' --query 'value[0].message' -o tsv)"
+  OUT="$(az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript --scripts 'cat /var/log/still-build.status; tail -n 3 /var/log/still-build.log' --query 'value[0].message' -o tsv 2>/dev/null || true)"
   echo "$(date -u +%H:%M) $(printf '%s' "$OUT" | tr '\n' ' ' | cut -c1-200)"
   STATE="$(printf '%s\n' "$OUT" | grep -m1 -xE 'running|done|failed' || true)"
   case "$STATE" in done) break ;; failed) echo "Build failed. Log above."; exit 1 ;; esac
