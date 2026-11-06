@@ -34,6 +34,22 @@ assert.ok(measured.why.some(w => w.param === 'tiltDbPerOct' && w.source === 'mea
 const learned = buildRecipe({ ...empty, tests: { tilt: { value: -3.2, trials: 5 } } }, 'normal', { learned: [0.1, 0.2, 0, 0.5], learnedRounds: 6 });
 assert.ok(Math.abs(learned.recipe.tiltDbPerOct - settingsFromX([0.1, 0.2, 0, 0.5]).tiltDbPerOct) < 1e-9);
 
+// Natural textures: picked by ear wins; otherwise from loved sounds; a disliked sound vetoes it.
+assert.equal(buildRecipe({ ...empty, intake: { texture: 'ocean' } }, 'normal').recipe.texture, 'ocean');
+assert.equal(buildRecipe({ ...empty, intake: { loves: ['fan'] } }, 'normal').recipe.texture, 'fan');
+assert.equal(buildRecipe({ ...empty, intake: { texture: 'rain', dislikes: ['rain'] } }, 'normal').recipe.texture, 'none');
+const rainAttack = buildRecipe({ ...empty, intake: { texture: 'rain', bother: { sudden: 3 } } }, 'attack').recipe;
+const rainNormal = buildRecipe({ ...empty, intake: { texture: 'rain' } }, 'normal').recipe;
+assert.ok(rainAttack.textureAmount < rainNormal.textureAmount && rainAttack.gentleEvents);
+for (const t of ['rain', 'ocean', 'fan']) {
+  const r = buildRecipe({ ...empty, intake: { texture: t } }, 'attack').recipe;
+  const { x, opts } = renderOptions(r);
+  const s = renderComfortLoop(x, { ...opts, rate: 44100, log2Length: 16, seed: 4 });
+  const peak = s.left.reduce((m, v) => Math.max(m, Math.abs(v)), 0);
+  assert.ok(peak <= 0.35 + 1e-9, `${t} peak within limit`);
+  assert.ok(s.left.every(Number.isFinite), `${t} renders`);
+}
+
 // A disliked category vetoes a measured value.
 const vetoHum = buildRecipe({ ...empty, intake: { dislikes: ['hum'] }, tests: { tonal: { value: 0.05, trials: 4 } } }, 'normal');
 assert.equal(vetoHum.recipe.tonal, 0);

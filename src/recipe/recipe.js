@@ -151,6 +151,24 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
     }
   }
 
+  // ---- Natural texture: rain, ocean or fan, chosen by ear or from the sounds you love ----
+  const TEXTURE_LOVES = { rain: ['rain'], ocean: ['ocean', 'stream'], fan: ['fan'] };
+  const hates = t => (TEXTURE_LOVES[t] || []).some(c => has(intake.dislikes, c));
+  let texture = 'none';
+  if (['none', 'rain', 'ocean', 'fan'].includes(intake.texture) && !hates(intake.texture)) {
+    texture = intake.texture;
+    if (texture !== 'none') note('texture', texture, 'measured', `A ${texture} texture, which you picked by ear.`, ['personal', 'buxton2021']);
+  } else {
+    texture = ['rain', 'ocean', 'fan'].find(t => TEXTURE_LOVES[t].some(c => has(intake.loves, c)) && !hates(t)) || 'none';
+    if (texture !== 'none') note('texture', texture, 'estimated', `A ${texture} texture, because you said you find it soothing.`, ['buxton2021', 'arausWater']);
+  }
+  // Softer in harder states; rain droplets softer still if sudden sounds bother you.
+  let textureAmount = state === 'attack' ? 0.35 : state === 'normal' ? 0.6 : 0.45;
+  const gentleEvents = n04(bother.sudden) >= 2;
+  if (texture === 'rain' && gentleEvents) textureAmount *= 0.7;
+  if (texture === 'ocean' && state !== 'normal') note('texture', 'calm sea', 'rule', 'Waves are kept shallow in this state: slow, gentle changes in loudness, never fast ones.', ['virjonen2019']);
+  if (texture === 'rain' && gentleEvents) note('texture', 'soft rain', 'rule', 'Raindrops are softened and spread out, because sudden sounds bother you.', ['ambrosini2003']);
+
   // ---- Personal EQ: contour cuts plus a presence soften ----
   const eq = [];
   const contour = profile.calibration?.contour || [];
@@ -197,7 +215,7 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
   let recipe = {
     version: RECIPE_VERSION, state,
     tiltDbPerOct: tilt, cutoffHz: cutoff, tonal, humHz, harmonics, swellDb, swellPeriodS, width,
-    eq, levelDb: level, fadeInS, fadeOutS: 3, timerMin,
+    eq, levelDb: level, fadeInS, fadeOutS: 3, timerMin, texture, textureAmount, gentleEvents,
     avoid: [...(intake.dislikes || [])],
     sources: { tilt: tiltSource },
   };
@@ -246,6 +264,7 @@ export function renderOptions(recipe) {
     opts: {
       toneHz: recipe.humHz, harmonics: recipe.harmonics, swellPeriodS: recipe.swellPeriodS,
       width: recipe.width, eq: recipe.eq, mode: recipe.state,
+      texture: recipe.texture, textureAmount: recipe.textureAmount, gentleEvents: !!recipe.gentleEvents,
     },
   };
 }
@@ -254,5 +273,6 @@ export function renderOptions(recipe) {
 export function describeRecipe(r) {
   const tilt = r.tiltDbPerOct <= -7 ? 'deep and dark (darker than brown noise)' : r.tiltDbPerOct <= -5 ? 'warm, close to brown noise' : r.tiltDbPerOct <= -3 ? 'balanced, close to pink noise' : 'airy, closer to white noise';
   const texture = r.tonal < 0.1 ? 'pure soft noise' : r.tonal < 0.4 ? `soft noise with a faint ${r.humHz.toFixed(0)} Hz hum` : r.tonal < 0.7 ? `noise and a ${r.humHz.toFixed(0)} Hz hum in equal parts` : `mostly a steady ${r.humHz.toFixed(0)} Hz hum`;
-  return { tilt, texture };
+  const name = { rain: 'rain', ocean: 'ocean', fan: 'fan' }[r.texture] || null;
+  return { tilt, texture, name };
 }

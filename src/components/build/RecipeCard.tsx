@@ -13,7 +13,7 @@ import { colors } from '../../lib/theme';
 type Props = { profile: Profile; onChange: (p: Profile) => void };
 const SOURCE: Record<string, string> = { measured: 'measured', learned: 'learned', estimated: 'from your answers', default: 'default', rule: 'safety rule', ai: 'AI review' };
 const LABEL: Record<string, string> = {
-  tiltDbPerOct: 'Darkness (spectral tilt)', cutoffHz: 'Top-end softening', tonal: 'Hum share', humHz: 'Hum pitch', harmonics: 'Hum harmonics',
+  texture: 'Natural texture', tiltDbPerOct: 'Darkness (spectral tilt)', cutoffHz: 'Top-end softening', tonal: 'Hum share', humHz: 'Hum pitch', harmonics: 'Hum harmonics',
   swellDb: 'Swell depth', swellPeriodS: 'Swell period', width: 'Stereo width', eq: 'Personal EQ', levelDb: 'Level', fadeInS: 'Fade-in', timerMin: 'Timer',
 };
 
@@ -27,7 +27,7 @@ export function RecipeCard({ profile, onChange }: Props) {
   const rows: [string, string][] = [
     ['Darkness', `${r.tiltDbPerOct.toFixed(1)} dB per octave · ${d.tilt}`],
     ['Top end', `softened above ${Math.round(r.cutoffHz)} Hz`],
-    ['Texture', d.texture],
+    ['Texture', `${d.name ? `${d.name[0].toUpperCase() + d.name.slice(1)} (${Math.round(r.textureAmount * 100)}%) over ` : ''}${d.texture}`],
     ['Hum', r.tonal < 0.05 ? 'none' : `${r.humHz.toFixed(1)} Hz with ${r.harmonics} harmonics (up to ${Math.round(r.humHz * r.harmonics)} Hz)`],
     ['Movement', r.swellDb < 0.1 ? 'steady' : `${r.swellDb.toFixed(1)} dB swell every ${r.swellPeriodS.toFixed(0)} s (${(1 / r.swellPeriodS).toFixed(2)} Hz)`],
     ['Width', `${Math.round(r.width * 100)}%`],

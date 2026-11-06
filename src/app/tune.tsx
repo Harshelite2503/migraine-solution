@@ -20,7 +20,7 @@ const MORE_TESTS = ['humHz', 'swellDb', 'width'];
 type StepKey = 'quick' | 'ears' | 'recipe' | 'about' | 'sensitivities' | 'likes' | 'reference' | 'contour' | 'more' | 'refine';
 type Step = { key: StepKey; title: string; sub: string; icon: IconName };
 const MAIN: Step[] = [
-  { key: 'quick', title: 'Quick start', sub: '4 taps · 30 seconds · no sound', icon: 'flash-outline' },
+  { key: 'quick', title: 'Quick start', sub: '5 taps · about a minute', icon: 'flash-outline' },
   { key: 'ears', title: 'Tune it by ear', sub: 'About 3 minutes · headphones', icon: 'headset-outline' },
   { key: 'recipe', title: 'Your sound', sub: 'Exact settings, and why', icon: 'document-text-outline' },
 ];

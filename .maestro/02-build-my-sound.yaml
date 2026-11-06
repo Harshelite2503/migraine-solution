@@ -14,7 +14,14 @@ name: Build my sound
 - tapOn: "Hiss, high sounds"
 - tapOn: "Yes"
 - tapOn: "Earbuds"
+- scrollUntilVisible:
+    element: "Choose Rain"
+    direction: DOWN
+- tapOn: "Choose Rain"
 - takeScreenshot: 06-quick-start
+- scrollUntilVisible:
+    element: "Done"
+    direction: DOWN
 - tapOn: "Done"
 - scrollUntilVisible:
     element: "Play A then B"

@@ -16,7 +16,9 @@ export const BOUNDS = {
   fadeOutS: [2, 10],
   levelDb: [-50, 6],         // relative to the reference loudness
   timerMin: [0, 90],
+  textureAmount: [0, 1],
 };
+export const TEXTURES = ['none', 'rain', 'ocean', 'fan'];
 
 const clamp = (v, [lo, hi]) => Math.min(hi, Math.max(lo, v));
 const finite = (v, fallback) => (Number.isFinite(v) ? v : fallback);
@@ -39,6 +41,8 @@ export function clampRecipe(recipe, state, ceilingDb) {
   r.fadeInS = Math.max(clamp(finite(r.fadeInS, mode.fadeSeconds), BOUNDS.fadeInS), mode.fadeSeconds);
   r.fadeOutS = clamp(finite(r.fadeOutS, 3), BOUNDS.fadeOutS);
   r.timerMin = Math.round(clamp(finite(r.timerMin, 30), BOUNDS.timerMin));
+  r.texture = TEXTURES.includes(r.texture) ? r.texture : 'none';
+  r.textureAmount = clamp(finite(r.textureAmount, 0.5), BOUNDS.textureAmount);
   r.eq = (Array.isArray(r.eq) ? r.eq : [])
     .filter(p => Number.isFinite(p?.hz) && Number.isFinite(p?.gainDb))
     .map(p => ({ hz: Math.round(clamp(p.hz, [40, 12000])), gainDb: Math.round(clamp(p.gainDb, BOUNDS.eqGainDb) * 10) / 10 }))

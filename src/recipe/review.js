@@ -83,6 +83,7 @@ export function buildReviewRequest(profile, recipes, feedback) {
     oftenVeryAnxious: i.anxietyDuringAttacks === 2,
     listening: i.listening ?? null,
     goal: i.goal ?? null,
+    texture: i.texture ?? null,
     loves: i.loves || [],
     dislikes: i.dislikes || [],
   };

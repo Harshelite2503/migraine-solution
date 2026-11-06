@@ -210,7 +210,13 @@ function shapeAmplitude(hz, p, opts) {
   const shelf = shelfDb ? dbToAmp(shelfDb / (1 + (3000 / hz) ** 2)) : 1;
   const eq = opts.contourCurve ? dbToAmp(curveDb(opts.contourCurve, hz)) : opts.contour && opts.contourCurve === undefined ? dbToAmp(contourEqDb(hz, opts.contour)) : 1;
   const cuts = opts.eqCurve ? dbToAmp(curveDb(opts.eqCurve, hz)) : opts.eq && opts.eqCurve === undefined ? dbToAmp(eqCurveDb(hz, opts.eq)) : 1;
-  return tilt * lowpass * highpass * shelf * eq * cuts;
+  let texture = 1;
+  if (opts.texture === 'fan') {
+    const a = clamp(Number(opts.textureAmount) || 0, 0, 1);
+    const body = Math.exp(-0.5 * (Math.log2(hz / 220) / 0.6) ** 2);      // soft resonance around the blades' whoosh
+    texture = (1 + 1.4 * a * body) * (1 / Math.sqrt(1 + (hz / 3500) ** 2)) ** a;
+  }
+  return tilt * lowpass * highpass * shelf * eq * cuts * texture;
 }
 
 /** Inverse real FFT of a Hermitian spectrum given for bins 0..n/2. */
@@ -239,7 +245,7 @@ function scaleSpectrum(re, im, factor) {
 /**
  * Render a seamless stereo loop.
  * @param {number[]} x point in [0,1]^4 (see paramsFromX)
- * @param {{rate?:number, log2Length?:number, seed?:number, contour?:Array, mode?:string, toneHz?:number, harmonics?:number, swellPeriodS?:number, width?:number, eq?:Array<{hz:number,gainDb:number}>, shelfDb?:number}} opts
+ * @param {{rate?:number, log2Length?:number, seed?:number, contour?:Array, mode?:string, toneHz?:number, harmonics?:number, swellPeriodS?:number, width?:number, texture?:'none'|'rain'|'ocean'|'fan', textureAmount?:number, gentleEvents?:boolean, eq?:Array<{hz:number,gainDb:number}>, shelfDb?:number}} opts
  */
 export function renderComfortLoop(x, opts = {}) {
   const rate = opts.rate || 44100;
@@ -305,6 +311,8 @@ export function renderComfortLoop(x, opts = {}) {
     return { re, im };
   });
   const channels = inverseRealPair(spectra[0], spectra[1], n);
+  if (opts.texture === 'ocean') applyOcean(channels, rate, opts, p, mode);
+  if (opts.texture === 'rain') addRain(channels, rate, opts, p);
   // Slow swell, an integer number of cycles per loop so the loop stays seamless.
   if (swellDb > 0) {
     const seconds = n / rate;
@@ -339,6 +347,70 @@ function peakGuard(channels) {
   const scale = PEAK_LIMIT / peak;
   for (const ch of channels) for (let i = 0; i < ch.length; i++) ch[i] *= scale;
   return 20 * Math.log10(scale);
+}
+
+
+const rms = ch => { let s = 0; for (let i = 0; i < ch.length; i++) s += ch[i] * ch[i]; return Math.sqrt(s / ch.length); };
+
+/**
+ * Ocean: slow waves. Each wave rises a little faster than it falls and brightens near its crest
+ * (a low-pass that opens with the wave). Whole waves per loop, filters run twice, so it loops
+ * seamlessly. Depth stays within the listening state's movement cap plus 2 dB.
+ */
+function applyOcean(channels, rate, opts, p, mode) {
+  const n = channels[0].length, a = clamp(Number(opts.textureAmount) || 0, 0, 1);
+  const seconds = n / rate, cycles = Math.max(1, Math.round(seconds / 10));
+  const depthDb = Math.min(2 + 4 * a, mode.swellCapDb + 2);
+  const before = channels.map(rms);
+  const fHigh = Math.min(p.cutoffHz, 4000), fLow = Math.max(150, fHigh * 0.3);
+  for (const ch of channels) {
+    let y = 0;
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < n; i++) {
+        const ph = cycles * i / n;
+        const e = 0.5 - 0.5 * Math.cos(TAU * (ph + 0.12 * Math.sin(TAU * ph)));   // skewed wave shape
+        const fc = fLow + (fHigh - fLow) * e;
+        y += (1 - Math.exp(-TAU * fc / rate)) * (ch[i] - y);
+        if (pass === 1) ch[i] = y * dbToAmp(-depthDb * (1 - e));
+      }
+    }
+  }
+  channels.forEach((ch, c) => { const g = before[c] / (rms(ch) || 1); for (let i = 0; i < n; i++) ch[i] *= g; });
+}
+
+/**
+ * Rain: thousands of soft droplets (short, damped tones with a gentle onset) scattered across
+ * the stereo field, never above the recipe's top-end limit. Level and density follow
+ * textureAmount; "gentleEvents" (sudden sounds bother this person) makes them softer still.
+ */
+function addRain(channels, rate, opts, p) {
+  const n = channels[0].length, a = clamp(Number(opts.textureAmount) || 0, 0, 1);
+  const random = rng((opts.seed ?? 7) + 101);
+  const perSecond = 250 + 450 * a, count = Math.round(perSecond * n / rate);
+  const fMax = Math.max(900, Math.min(5000, p.cutoffHz * 1.1)), fMin = Math.min(1100, fMax * 0.6);
+  const layer = [new Float32Array(n), new Float32Array(n)];
+  const attack = Math.round(rate * (opts.gentleEvents ? 0.004 : 0.0015));
+  for (let d = 0; d < count; d++) {
+    const start = Math.floor(random() * n);
+    const f = fMin * (fMax / fMin) ** random();
+    const tau = rate * (0.002 + 0.006 * random());
+    const len = Math.round(tau * 5), amp = Math.exp(-1.2 * random());
+    const pan = random(), gl = Math.cos(pan * Math.PI / 2), gr = Math.sin(pan * Math.PI / 2);
+    const w = TAU * f / rate, phase = TAU * random(), chirp = 1 + 0.3 * random();
+    for (let i = 0; i < len; i++) {
+      const env = Math.exp(-i / tau) * (i < attack ? 0.5 - 0.5 * Math.cos(Math.PI * i / attack) : 1);
+      const v = amp * env * Math.sin(phase + w * i * (1 + (chirp - 1) * i / len));
+      const k = (start + i) % n;
+      layer[0][k] += v * gl; layer[1][k] += v * gr;
+    }
+  }
+  const levelDb = -15 + 7 * a - (opts.gentleEvents ? 5 : 0);
+  channels.forEach((ch, c) => {
+    const bed = rms(ch), g = bed * dbToAmp(levelDb) / (rms(layer[c]) || 1);
+    for (let i = 0; i < n; i++) ch[i] += layer[c][i] * g;
+    const keep = bed / (rms(ch) || 1);
+    for (let i = 0; i < n; i++) ch[i] *= keep;
+  });
 }
 
 /** Raised-cosine fade in/out, for short comparison clips (not for loops). */

@@ -83,6 +83,16 @@ export const EVIDENCE = {
     citation: 'Jespersen et al. 2022, Cochrane',
     strength: 'moderate',
   },
+  buxton2021: {
+    finding: 'Across many studies, natural sounds lowered stress and annoyance, and water sounds showed the largest health and mood benefits, though results varied widely between studies.',
+    citation: 'Buxton et al. 2021, PNAS (meta-analysis)',
+    strength: 'weak',
+  },
+  arausWater: {
+    finding: 'Added to city noise, birdsong raised pleasantness for most listeners but water sounds did for only about one in five, so whether water soothes depends on the person.',
+    citation: 'Ooi et al. 2023 (ARAUS); Still strategy review',
+    strength: 'moderate',
+  },
   personal: {
     finding: 'Measured from your own choices in Still.',
     citation: 'Your listening tests',

@@ -57,14 +57,14 @@ export default function QuietRoom() {
   // phone asks for reduced motion; and the screen dims itself after 15 s without a touch.
   const playingNow = playing === 'comfort' || playing === 'softer';
   useEffect(() => {
-    if (!playingNow || reduceMotion) { breath.stopAnimation(); breath.setValue(0); return; }
+    if (!playingNow || reduceMotion || autoDim) { breath.stopAnimation(); breath.setValue(0); return; }
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(breath, { toValue: 1, duration: 4500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       Animated.timing(breath, { toValue: 0, duration: 5500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
-  }, [playingNow, reduceMotion]);
+  }, [playingNow, reduceMotion, autoDim]);
   const armDim = useCallback(() => {
     if (dimTimer.current) clearTimeout(dimTimer.current);
     setAutoDim(false);
@@ -75,7 +75,7 @@ export default function QuietRoom() {
   /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
   const recipes = useMemo(() => {
     const comfort = recipeFor(profile, state).recipe;
-    const softer = clampRecipe(applyAdjustments(comfort, { tiltDbPerOct: comfort.tiltDbPerOct - 1.5, cutoffHz: comfort.cutoffHz * 0.6, swellDb: 0, levelOffsetDb: SOFTER_DB }), state, comfort.levelDb);
+    const softer = clampRecipe({ ...applyAdjustments(comfort, { tiltDbPerOct: comfort.tiltDbPerOct - 1.5, cutoffHz: comfort.cutoffHz * 0.6, swellDb: 0, levelOffsetDb: SOFTER_DB }), textureAmount: comfort.textureAmount * 0.5 }, state, comfort.levelDb);
     return { comfort, softer };
   }, [profile, state]);
 
@@ -178,7 +178,7 @@ export default function QuietRoom() {
             </View>
           </Pressable>
           <Text style={{ color: dim.soft, fontSize: 13, textAlign: 'center' }}>
-            {built ? `Your sound, ${quieter} dB quieter than usual` : `A gentle, dark sound, ${quieter} dB quieter than usual`}
+            {built ? `Your ${recipes.comfort.texture !== 'none' ? `${recipes.comfort.texture} ` : ''}sound, ${quieter} dB quieter than usual` : `A gentle, dark sound, ${quieter} dB quieter than usual`}
           </Text>
         </View>
 

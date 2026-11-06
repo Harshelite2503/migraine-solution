@@ -24,6 +24,7 @@ export type Intake = {
   loves?: Category[];
   listening?: 'earbuds' | 'headphones' | 'speaker' | 'pillow';
   goal?: 'rest' | 'sleep' | 'distract' | 'focus';
+  texture?: 'none' | 'rain' | 'ocean' | 'fan';
 };
 export type Measured = { value: number; trials: number; decisive?: number; at?: string };
 export type Tests = Partial<Record<'tilt' | 'cutoff' | 'tonal' | 'humHz' | 'swellDb' | 'swellPeriodS' | 'width' | 'harmonics', Measured>>;
@@ -82,6 +83,7 @@ function sanitizeIntake(raw: any): Intake {
     loves: someOf(raw.loves, CATEGORIES),
     listening: oneOf(raw.listening, ['earbuds', 'headphones', 'speaker', 'pillow'] as const),
     goal: oneOf(raw.goal, ['rest', 'sleep', 'distract', 'focus'] as const),
+    texture: oneOf(raw.texture, ['none', 'rain', 'ocean', 'fan'] as const),
   };
   return Object.fromEntries(Object.entries(i).filter(([, v]) => v !== undefined)) as Intake;
 }
