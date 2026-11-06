@@ -8,5 +8,9 @@
     "**/*.ts",
     "**/*.tsx",
     "src/engine/*.js"
+  ],
+  "exclude": [
+    "server",
+    "node_modules"
   ]
 }

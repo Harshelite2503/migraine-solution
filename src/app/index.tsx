@@ -4,9 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { describeX } from '../engine/comfort-engine.js';
+import { applyAdjustments, describeRecipe } from '../recipe/recipe.js';
+import { clampRecipe } from '../recipe/bounds.js';
 import { pendingFollowUp } from '../engine/journal-store.js';
-import { champion, DEFAULT_X, fadeInSeconds, freshProfile, levelFor, lowerState, softer, SOFTER_DB, type Profile, type State } from '../lib/profile';
+import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
 import { loadJournal, loadProfile, saveJournal, saveProfile, type Session } from '../lib/storage';
 import * as player from '../lib/player';
 import { Button, H1, Muted, Segmented, styles } from '../lib/ui';
@@ -53,27 +54,31 @@ export default function QuietRoom() {
     if (ask && !s.worse) setCheckFor(s.id);
   };
 
+  /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
+  const recipeOf = (choice: 'comfort' | 'softer') => {
+    const r = recipeFor(profile, state).recipe;
+    if (choice === 'comfort') return r;
+    return clampRecipe(applyAdjustments(r, { tiltDbPerOct: r.tiltDbPerOct - 1.5, cutoffHz: r.cutoffHz * 0.6, swellDb: 0, levelOffsetDb: SOFTER_DB }), state, r.levelDb);
+  };
+
   const playSound = async (choice: 'comfort' | 'softer') => {
     await end({ ask: false });
     setCheckFor(null);
-    const base = champion(profile) ?? DEFAULT_X;
-    const x = choice === 'softer' ? softer(base) : base;
-    const levelDb = levelFor(profile, state) + (choice === 'softer' ? SOFTER_DB : 0);
-    const fadeIn = fadeInSeconds(profile, state);
+    const r = recipeOf(choice);
     setPlaying(choice);
-    setStatus('Preparing…');
-    begin(choice, levelDb);
+    setStatus('Preparing your sound…');
+    begin(choice, r.levelDb);
     try {
-      const uri = await player.soundFile(x, state);
+      const uri = await player.recipeFile(r);
       if (live.current?.choice !== choice) return;
-      await player.play(uri, { levelDb, fadeIn, title: choice === 'softer' ? 'Softer and darker' : 'My comfort sound' });
+      await player.play(uri, { levelDb: r.levelDb, fadeIn: r.fadeInS, title: choice === 'softer' ? 'Softer and darker' : 'My comfort sound' });
     } catch {
       setStatus('Could not start the sound on this phone.'); setPlaying(null); live.current = null; return;
     }
     const minutes = Number(timer);
     if (minutes) sleep.current = setTimeout(() => { player.stop(60); setTimeout(() => { end({ ask: false }); setPlaying(null); setStatus('Faded to silence. Rest well.'); }, 61000); }, Math.max(0, minutes - 1) * 60000);
-    const what = choice === 'softer' ? 'A softer, darker version' : champion(profile) ? 'Your comfort sound' : 'A gentle, dark default';
-    setStatus(`${what} is fading in over ${fadeIn.toFixed(0)} seconds${minutes ? ` and fades out after ${minutes} minutes` : ''}. It keeps playing if you lock the phone. Turn the volume down if it is too much.`);
+    const what = choice === 'softer' ? 'A softer, darker version of your sound' : built ? 'Your sound' : 'A gentle, dark starting sound';
+    setStatus(`${what} is fading in over ${r.fadeInS.toFixed(0)} seconds${minutes ? ` and fades out after ${minutes} minutes` : ''}. It keeps playing if you lock the phone. Turn the volume down if it is too much.`);
   };
 
   const stopSound = async () => { player.stop(3); setPlaying(null); setStatus('Fading to silence.'); await end(); };
@@ -104,8 +109,9 @@ export default function QuietRoom() {
     setState(next);
   };
 
-  const tuned = champion(profile);
-  const level = levelFor(profile, state);
+  const built = progress(profile).done >= 3;
+  const mine = recipeFor(profile, state).recipe;
+  const d = describeRecipe(mine);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
@@ -116,8 +122,8 @@ export default function QuietRoom() {
 
         <Choice title="Dark screen, no sound" body="Just rest. Tap anywhere to come back." onPress={darkOnly} />
         <Choice title="My comfort sound" active={playing === 'comfort'} onPress={() => playSound('comfort')}
-          body={tuned ? `Your tuned sound: ${describeX(tuned).tilt}. Plays ${Math.abs(level).toFixed(0)} dB below your usual level.`
-            : `No tuned sound yet, so a gentle, dark default plays ${Math.abs(level).toFixed(0)} dB below the usual level. Tune your sound on a calmer day.`} />
+          body={built ? `${d.tilt[0].toUpperCase() + d.tilt.slice(1)}, ${d.texture}, softened above ${Math.round(mine.cutoffHz)} Hz. Plays ${Math.abs(mine.levelDb).toFixed(0)} dB below your usual level.`
+            : `Not personalised yet, so a gentle, dark starting sound plays ${Math.abs(mine.levelDb).toFixed(0)} dB below the usual level. Build your sound on a calmer day.`} />
         <Choice title="Softer and darker" active={playing === 'softer'} onPress={() => playSound('softer')} body="Your sound, 6 dB quieter, with a duller top end and no swell." />
 
         {playing && (

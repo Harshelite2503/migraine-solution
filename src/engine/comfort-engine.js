@@ -134,15 +134,37 @@ export function contourCeilingDb(contour) {
   return values.length % 2 ? values[(values.length - 1) / 2] : (values[values.length / 2 - 1] + values[values.length / 2]) / 2;
 }
 
+/**
+ * Smooth personal EQ from a list of cut points [{hz, gainDb}] (gain <= 0), interpolated on a
+ * log-frequency axis and held flat beyond the first and last point. Never boosts.
+ */
+export function eqCurveDb(hz, points) {
+  const pts = (points || []).filter(p => Number.isFinite(p?.hz) && p.hz > 0 && Number.isFinite(p?.gainDb)).sort((a, b) => a.hz - b.hz);
+  if (!pts.length || hz <= 0) return 0;
+  const lf = Math.log2(hz);
+  let g;
+  if (pts.length === 1 || lf <= Math.log2(pts[0].hz)) g = pts[0].gainDb;
+  else if (lf >= Math.log2(pts[pts.length - 1].hz)) g = pts[pts.length - 1].gainDb;
+  else {
+    let i = 0;
+    while (Math.log2(pts[i + 1].hz) < lf) i++;
+    const t = (lf - Math.log2(pts[i].hz)) / (Math.log2(pts[i + 1].hz) - Math.log2(pts[i].hz));
+    g = pts[i].gainDb + t * (pts[i + 1].gainDb - pts[i].gainDb);
+  }
+  return clamp(g, -24, 0);
+}
+
 function shapeAmplitude(hz, p, opts) {
   if (hz < 20) return 0;
   const tilt = (hz / 1000) ** (p.tiltDbPerOctave / 6.0206);
   const lowpass = 1 / Math.sqrt(1 + (hz / p.cutoffHz) ** 4);
   const highpass = 1 / Math.sqrt(1 + (40 / hz) ** 4);
   const mode = MODES[opts.mode] || MODES.normal;
-  const shelf = mode.shelfDb ? dbToAmp(mode.shelfDb / (1 + (3000 / hz) ** 2)) : 1;
+  const shelfDb = Number.isFinite(opts.shelfDb) ? opts.shelfDb : mode.shelfDb;
+  const shelf = shelfDb ? dbToAmp(shelfDb / (1 + (3000 / hz) ** 2)) : 1;
   const eq = opts.contour ? dbToAmp(contourEqDb(hz, opts.contour)) : 1;
-  return tilt * lowpass * highpass * shelf * eq;
+  const cuts = opts.eq ? dbToAmp(eqCurveDb(hz, opts.eq)) : 1;
+  return tilt * lowpass * highpass * shelf * eq * cuts;
 }
 
 /** Inverse real FFT of a Hermitian spectrum given for bins 0..n/2. */
@@ -171,7 +193,7 @@ function scaleSpectrum(re, im, factor) {
 /**
  * Render a seamless stereo loop.
  * @param {number[]} x point in [0,1]^4 (see paramsFromX)
- * @param {{rate?:number, log2Length?:number, seed?:number, contour?:Array, mode?:string, toneHz?:number}} opts
+ * @param {{rate?:number, log2Length?:number, seed?:number, contour?:Array, mode?:string, toneHz?:number, harmonics?:number, swellPeriodS?:number, width?:number, eq?:Array<{hz:number,gainDb:number}>, shelfDb?:number}} opts
  */
 export function renderComfortLoop(x, opts = {}) {
   const rate = opts.rate || 44100;
@@ -198,7 +220,8 @@ export function renderComfortLoop(x, opts = {}) {
   }
   // Tonal layer: harmonics placed exactly on FFT bins, so they loop cleanly; same phase in both ears.
   const tone = { re: new Float64Array(n), im: new Float64Array(n) };
-  for (let h = 1; h <= 16; h++) {
+  const harmonics = clamp(Math.round(Number(opts.harmonics) || 16), 1, 16);
+  for (let h = 1; h <= harmonics; h++) {
     const k = Math.round(h * toneHz * n / rate);
     if (k <= 0 || k >= half) break;
     const amp = shapeAmplitude(k * rate / n, p, opts) / Math.sqrt(h) * n / 2;
@@ -223,7 +246,8 @@ export function renderComfortLoop(x, opts = {}) {
   // Slow swell, an integer number of cycles per loop so the loop stays seamless.
   if (swellDb > 0) {
     const seconds = n / rate;
-    const cycles = Math.max(1, Math.round(seconds * 0.1));
+    const period = clamp(Number(opts.swellPeriodS) || 10, 2, 60);
+    const cycles = Math.max(1, Math.round(seconds / period));
     const gains = new Float32Array(n);
     let meanSquare = 0;
     for (let i = 0; i < n; i++) {
@@ -233,8 +257,16 @@ export function renderComfortLoop(x, opts = {}) {
     const norm = 1 / Math.sqrt(meanSquare);
     for (const ch of channels) for (let i = 0; i < n; i++) ch[i] *= gains[i] * norm;
   }
+  if (Number.isFinite(opts.width)) {
+    const w = clamp(opts.width, 0, 1);
+    const [l, r] = channels;
+    for (let i = 0; i < n; i++) {
+      const mid = (l[i] + r[i]) / 2, side = (l[i] - r[i]) / 2;
+      l[i] = mid + w * side; r[i] = mid - w * side;
+    }
+  }
   const headroomDb = peakGuard(channels);
-  return { left: channels[0], right: channels[1], rate, params: { ...p, swellDb }, seconds: n / rate, headroomDb };
+  return { left: channels[0], right: channels[1], rate, params: { ...p, swellDb, toneHz }, seconds: n / rate, headroomDb };
 }
 
 /** Scale all channels down together if any sample exceeds PEAK_LIMIT. Returns the reduction in dB (≤ 0). */

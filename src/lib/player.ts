@@ -2,7 +2,8 @@
 // with expo-audio. Volume always ramps (never jumps), and playback continues with the screen locked.
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
-import { renderComfortLoop, applyFades } from '../engine/comfort-engine.js';
+import { renderComfortLoop, applyFades, renderBand } from '../engine/comfort-engine.js';
+import { renderOptions } from '../recipe/recipe.js';
 import { encodeWav } from '../engine/wav.js';
 
 const RATE = 44100;
@@ -22,6 +23,43 @@ async function ensureAudioMode() {
 
 const keyOf = (x: number[], mode: string, clip: boolean) =>
   `${clip ? 'clip' : 'loop'}-${mode}-${x.map(v => Math.round(v * 1000)).join('-')}`;
+
+/** Small stable hash, so each distinct recipe gets its own cached file. */
+function hash(text: string) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+
+async function writeOnce(name: string, render: () => { left: Float32Array; right: Float32Array; rate: number }) {
+  const file = new File(Paths.cache, name);
+  if (file.exists) return file.uri;
+  await new Promise(r => setTimeout(r, 16)); // let "Preparing…" paint before heavy work
+  const s = render();
+  file.create({ overwrite: true });
+  await file.write(encodeWav(s.left, s.right, s.rate));
+  return file.uri;
+}
+
+type RecipeLike = Parameters<typeof renderOptions>[0];
+
+/**
+ * Render (or reuse) a recipe as a seamless ~12 s loop, or as a 6 s clip with fades for tests.
+ * The loop is long enough for a swell of up to 12 s to repeat cleanly.
+ */
+export async function recipeFile(recipe: RecipeLike, clip = false, longClip = false): Promise<string> {
+  const { x, opts } = renderOptions(recipe);
+  const key = hash(JSON.stringify({ x, opts, clip, longClip }));
+  return writeOnce(`still-r-${clip ? 'c' : 'l'}-${key}.wav`, () => {
+    const s = renderComfortLoop(x, { ...opts, rate: RATE, log2Length: clip && !longClip ? 18 : 19, seed: 21 });
+    return clip ? { left: applyFades(s.left, RATE, 0.8), right: applyFades(s.right, RATE, 0.8), rate: RATE } : s;
+  });
+}
+
+/** Half-octave noise band for the comfort contour. */
+export async function bandFile(hz: number): Promise<string> {
+  return writeOnce(`still-band-${hz}.wav`, () => renderBand(hz, { rate: RATE, log2Length: 17 }));
+}
 
 /** Render (or reuse) a sound file. Loops are ~6 s and seamless; clips are 6 s with fades, for A/B rounds. */
 export async function soundFile(x: number[], mode: string, clip = false): Promise<string> {
@@ -87,3 +125,21 @@ export function stop(seconds = 3) {
 }
 
 export const isPlaying = () => player !== null;
+
+/**
+ * Play a sound that rises slowly in loudness (even steps in dB) while the person holds a button.
+ * Returns a function that stops it and reports the level reached, in dB relative to the reference.
+ */
+export async function playRising(uri: string, fromDb: number, toDb: number, dbPerSecond: number): Promise<() => number> {
+  const mine = ++generation;
+  stop(0.1);
+  await ensureAudioMode();
+  if (mine !== generation) return () => fromDb;
+  const p = createAudioPlayer({ uri });
+  p.loop = true; p.volume = Math.min(1, dbToAmp(fromDb)); player = p; p.play();
+  const started = Date.now();
+  const levelNow = () => Math.min(toDb, fromDb + ((Date.now() - started) / 1000) * dbPerSecond);
+  clearRamp();
+  ramp = setInterval(() => { if (player === p) p.volume = Math.min(1, dbToAmp(levelNow())); }, STEP_MS);
+  return () => { const reached = levelNow(); stop(0.3); return reached; };
+}

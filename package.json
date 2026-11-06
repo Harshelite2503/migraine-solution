@@ -28,7 +28,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "node --no-warnings tests/engine.test.mjs && node --no-warnings tests/journal.test.mjs"
+    "test": "node --no-warnings tests/engine.test.mjs && node --no-warnings tests/journal.test.mjs && node --no-warnings tests/recipe.test.mjs"
   },
   "private": true
 }

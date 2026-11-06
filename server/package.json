@@ -1,0 +1,20 @@
+{
+  "name": "still-recipe-review",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/server/src/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --no-warnings dist/server/test/review.test.js",
+    "start": "func start"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@azure/functions": "^4.17.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "~6.0.3"
+  }
+}

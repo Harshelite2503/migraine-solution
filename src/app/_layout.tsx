@@ -20,7 +20,7 @@ export default function Layout() {
       >
         <Tabs.Screen name="index" options={{ title: 'Quiet room' }} />
         <Tabs.Screen name="journal" options={{ title: 'Journal' }} />
-        <Tabs.Screen name="tune" options={{ title: 'Tune my sound' }} />
+        <Tabs.Screen name="tune" options={{ title: 'Build my sound' }} />
       </Tabs>
     </>
   );
