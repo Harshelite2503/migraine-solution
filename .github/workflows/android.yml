@@ -9,6 +9,10 @@ on:
     paths: ['src/**', 'app.json', 'package.json', 'package-lock.json', 'assets/**', '.github/workflows/android.yml']
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
@@ -18,8 +22,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      EXPO_PUBLIC_RECIPE_API_URL: ${{ vars.RECIPE_API_URL }}
-      EXPO_PUBLIC_RECIPE_API_KEY: ${{ secrets.RECIPE_API_KEY }}
+      # Not secrets: this identity only accepts GitHub's OIDC token from main in this repository,
+      # and can only manage the still-review-rg resource group (Website Contributor).
+      AZURE_CLIENT_ID: c3c6b1cc-16d8-4144-a2b9-71533348d631
+      AZURE_TENANT_ID: c8f2e123-9b86-471f-b7e8-e8871582d4e4
+      AZURE_SUBSCRIPTION_ID: 4b37c323-30b2-4684-88ff-ba5cdc3467f9
+      AZURE_FUNCTIONAPP_NAME: still-review-fc26d0
+      AZURE_RESOURCE_GROUP: still-review-rg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,6 +37,23 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: npm ci
       - run: npm test
+      # Turn on the AI review in this build if the review server is reachable (main only).
+      - uses: azure/login@v2
+        id: azure
+        if: github.ref == 'refs/heads/main'
+        continue-on-error: true
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Point the app at the review server
+        if: steps.azure.outcome == 'success'
+        continue-on-error: true
+        run: |
+          KEY=$(az functionapp keys list -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" --query functionKeys.default -o tsv)
+          echo "::add-mask::$KEY"
+          echo "EXPO_PUBLIC_RECIPE_API_URL=https://$AZURE_FUNCTIONAPP_NAME.azurewebsites.net/api/review" >> "$GITHUB_ENV"
+          echo "EXPO_PUBLIC_RECIPE_API_KEY=$KEY" >> "$GITHUB_ENV"
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install
         env: { CI: 1 }

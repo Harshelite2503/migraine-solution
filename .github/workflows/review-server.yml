@@ -1,7 +1,5 @@
 # Build, test and deploy the AI review server (server/) to Azure Functions.
 # Signs in to Azure with GitHub's short-lived OIDC token; no Azure password is stored.
-# Inactive until these repository variables exist: AZURE_CLIENT_ID, AZURE_TENANT_ID,
-# AZURE_SUBSCRIPTION_ID, AZURE_FUNCTIONAPP_NAME, AZURE_RESOURCE_GROUP (see server/README.md).
 # Secrets copied into the Function App's settings: OPENROUTER_API_KEY (free models, used first) and,
 # optionally, ANTHROPIC_API_KEY (paid Claude, used only when there is no OpenRouter key).
 name: Review server
@@ -18,6 +16,15 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  # Not secrets: this identity only accepts GitHub's OIDC token from main in this repository,
+  # and can only manage the still-review-rg resource group (Website Contributor).
+  AZURE_CLIENT_ID: c3c6b1cc-16d8-4144-a2b9-71533348d631
+  AZURE_TENANT_ID: c8f2e123-9b86-471f-b7e8-e8871582d4e4
+  AZURE_SUBSCRIPTION_ID: 4b37c323-30b2-4684-88ff-ba5cdc3467f9
+  AZURE_FUNCTIONAPP_NAME: still-review-fc26d0
+  AZURE_RESOURCE_GROUP: still-review-rg
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -32,7 +39,7 @@ jobs:
 
   deploy:
     needs: test
-    if: github.ref == 'refs/heads/main' && vars.AZURE_CLIENT_ID != ''
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,9 +53,9 @@ jobs:
           npm prune --omit=dev
       - uses: azure/login@v2
         with:
-          client-id: ${{ vars.AZURE_CLIENT_ID }}
-          tenant-id: ${{ vars.AZURE_TENANT_ID }}
-          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
       - name: Store model API keys in the Function App
         env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -58,17 +65,17 @@ jobs:
           [ -n "$OPENROUTER_API_KEY" ] && SETTINGS+=("OPENROUTER_API_KEY=$OPENROUTER_API_KEY")
           [ -n "$ANTHROPIC_API_KEY" ] && SETTINGS+=("ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
           if [ ${#SETTINGS[@]} -gt 0 ]; then
-            az functionapp config appsettings set -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_FUNCTIONAPP_NAME }}" --settings "${SETTINGS[@]}" -o none
+            az functionapp config appsettings set -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" --settings "${SETTINGS[@]}" -o none
           fi
       - uses: Azure/functions-action@v1
         with:
-          app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+          app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           package: server
           sku: flexconsumption
       - name: Smoke test
         run: |
-          KEY=$(az functionapp keys list -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_FUNCTIONAPP_NAME }}" --query "functionKeys.default" -o tsv)
-          URL="https://${{ vars.AZURE_FUNCTIONAPP_NAME }}.azurewebsites.net/api/review"
+          KEY=$(az functionapp keys list -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" --query "functionKeys.default" -o tsv)
+          URL="https://$AZURE_FUNCTIONAPP_NAME.azurewebsites.net/api/review"
           for i in 1 2 3 4 5 6; do
             CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST -H "x-functions-key: $KEY" -H "Content-Type: application/json" -d '{"oops":1}' "$URL")
             echo "attempt $i: HTTP $CODE"

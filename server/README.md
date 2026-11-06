@@ -22,46 +22,13 @@ against the research in `src/recipe/evidence.js`. It is optional: the app works 
 
 **Cost:** Flex Consumption bills only while a request runs, and its monthly free grant (100,000 GB-seconds and 250,000 executions) covers about 1,500 one-minute reviews at 512 MB. With free OpenRouter models, the review costs nothing in normal pilot use. No Application Insights is attached; add it if you need logs.
 
-## One-time setup (owner of the Azure subscription)
+## Setup status
 
-1. Create a deploy identity that GitHub Actions can use without a stored password. It works only for `main` in this repo and only on `still-review-rg`:
+- **Done:** the Azure resources, and a GitHub deploy identity (`still-review-github-deploy`). It has no password, accepts GitHub's OIDC token only from `main` in this repository, and holds "Website Contributor" on `still-review-rg` only. Its IDs are in the workflow files; they are not secrets.
+- **Done:** every push to `main` that touches the server deploys it ("Review server" workflow). The "Android build" workflow fetches the function key from Azure at build time, so builds from `main` have the AI review switched on.
+- **Your step:** add a repository **secret** named `OPENROUTER_API_KEY` (GitHub → Settings → Secrets and variables → Actions → New repository secret), then re-run the "Review server" workflow. Until then the server answers 503 ("not configured") and the app keeps using its rules. Optionally also add `ANTHROPIC_API_KEY`; it's used only when there is no OpenRouter key.
 
-```bash
-CID=$(az ad app create --display-name still-review-github-deploy --query appId -o tsv)
-```
-
-```bash
-az ad sp create --id "$CID"
-```
-
-```bash
-az ad app federated-credential create --id "$CID" --parameters '{"name":"github-main","issuer":"https://token.actions.githubusercontent.com","subject":"repo:shivankur-code/migraine-solution:ref:refs/heads/main","audiences":["api://AzureADTokenExchange"]}'
-```
-
-```bash
-az role assignment create --assignee "$CID" --role "Website Contributor" --scope "$(az group show -n still-review-rg --query id -o tsv)"
-```
-
-2. Add repository variables in GitHub (Settings → Secrets and variables → Actions → Variables):
-   - `AZURE_CLIENT_ID`: the `$CID` from step 1
-   - `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID`: from `az account show`
-   - `AZURE_FUNCTIONAPP_NAME`: `still-review-fc26d0`
-   - `AZURE_RESOURCE_GROUP`: `still-review-rg`
-3. Add a repository **secret** `OPENROUTER_API_KEY` with your OpenRouter key. Optionally also add `ANTHROPIC_API_KEY`; it's used only without an OpenRouter key.
-4. Run the "Review server" workflow (Actions tab → Run workflow). It tests, deploys, copies the key into the Function App, and smoke-tests the endpoint.
-5. Build the app with the review enabled. Either use the free GitHub build: add a repository variable `RECIPE_API_URL` = `https://still-review-fc26d0.azurewebsites.net/api/review` and a secret `RECIPE_API_KEY` = the function key from the command below, then run the "Android build" workflow. Or build on Azure:
-
-```bash
-export EXPO_PUBLIC_RECIPE_API_URL=https://still-review-fc26d0.azurewebsites.net/api/review
-```
-
-```bash
-export EXPO_PUBLIC_RECIPE_API_KEY=$(az functionapp keys list -g still-review-rg -n still-review-fc26d0 --query functionKeys.default -o tsv)
-```
-
-```bash
-scripts/azure-android-build.sh main
-```
+**Note:** the function key is inside the APK, so anyone with the APK could call the review endpoint. With free models and at most 10 instances, that risk is small for a pilot. Before a public launch, add per-install tokens or rate limiting.
 
 ## Develop and test
 
