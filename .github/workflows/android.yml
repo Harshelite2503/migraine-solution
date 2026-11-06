@@ -1,5 +1,5 @@
 # Free Android build on GitHub's runners (free for public repositories). Produces a release APK
-# for 64-bit phones, attached to the run as "Still-android". Signed with a test key, so uninstall
+# for 64-bit phones, attached to the run as "Still-android". On main it also switches on the AI review. Signed with a test key, so uninstall
 # the previous build before installing a new one.
 name: Android build
 
