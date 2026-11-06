@@ -1,4 +1,4 @@
-# Quiet room: play, stop, check-in, dark screen. Fails if the sound takes over 3 s to start.
+# Quiet room: play and stop (sound must start within 3 s), check-in, auto-dim and brighten, dark screen.
 appId: com.stillsoundlab.still
 name: Quiet room
 ---
@@ -13,35 +13,41 @@ name: Quiet room
     visible: "this text never appears"
     timeout: 4000
     optional: true
+
+# 1. Play, then stop well before the screen dims (sessions under 3 s are not recorded).
 - tapOn: "Play my sound"
-# The play control's label is "Getting ready" until the sound has started.
 - extendedWaitUntil:
     visible: "Fade to silence"
     timeout: 3000
 - takeScreenshot: 02-playing
-# Let it play for a few seconds (sessions under 3 s are not recorded).
 - extendedWaitUntil:
     visible: "this text never appears"
-    timeout: 5000
+    timeout: 4000
     optional: true
-- assertVisible: "This is making it worse"
-# If the screen has dimmed itself (15 s after play), the first tap only brightens it; stop right after.
-- tapOn:
-    text: "Screen dimmed. Tap to brighten."
-    optional: true
-# One tap must bring the screen back (the controls are visible again).
+- tapOn: "Fade to silence"
+- extendedWaitUntil:
+    visible: "Optional: how did that go?"
+    timeout: 6000
+- takeScreenshot: 03-check-in
+- tapOn: "A bit easier"
+- assertVisible: "Noted. Rest well."
+
+# 2. Auto-dim: 15 s after play the screen dims; one tap brings it back without stopping the sound.
+- tapOn: "Play my sound"
+- extendedWaitUntil:
+    visible: "Screen dimmed. Tap to brighten."
+    timeout: 30000
+- takeScreenshot: 04-auto-dimmed
+- tapOn: "Screen dimmed. Tap to brighten."
 - assertVisible: "This is making it worse"
 - tapOn: "Fade to silence"
 - extendedWaitUntil:
     visible: "Optional: how did that go?"
-    timeout: 5000
-- takeScreenshot: 03-check-in
-- tapOn: "A bit easier"
-- assertVisible: "Noted. Rest well."
+    timeout: 6000
+- tapOn: "Skip"
+
+# 3. Dark screen: pure black; one tap comes back.
 - tapOn: "Dark screen"
-- takeScreenshot: 04-dark-screen
+- takeScreenshot: 05-dark-screen
 - tapOn: "Dark screen. Tap to come back."
 - assertVisible: "Rest here."
-- extendedWaitUntil:
-    visible: "Rest here."
-    timeout: 5000
