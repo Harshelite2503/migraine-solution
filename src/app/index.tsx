@@ -147,6 +147,20 @@ export default function QuietRoom() {
         </Text>
       </View>
 
+      {checkFor && !playing && (
+        <Card accent>
+          <Text style={{ color: colors.ink, fontSize: 16 }}>Optional: how did that go?</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            {([['better', 'A bit easier'], ['same', 'About the same'], ['worse', 'Worse'], ['skipped', 'Skip']] as const).map(([k, label]) => (
+              <Button key={k} label={label} kind={k === 'skipped' ? 'quiet' : 'outline'} onPress={() => answer(k)} style={{ flexBasis: '47%', flexGrow: 1 }} />
+            ))}
+          </View>
+          <Muted small>How it felt, not proof the sound helped. Headaches also change with time, rest and medicine.</Muted>
+        </Card>
+      )}
+
+      {status ? <Text style={{ color: colors.muted, fontSize: 13.5, textAlign: 'center', lineHeight: 20 }}>{status}</Text> : null}
+
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <RoundAction icon="moon" label="Dark screen" sub="No sound" onPress={darkOnly} />
         <RoundAction icon="water-outline" label="Softer" sub="Darker, 6 dB quieter" active={playing === 'softer'} onPress={() => (playing === 'softer' ? stopSound() : playSound('softer'))} />
@@ -164,19 +178,6 @@ export default function QuietRoom() {
         <Segmented options={TIMERS} value={timer} onChange={setTimer} />
       </View>
 
-      {checkFor && !playing && (
-        <Card accent>
-          <Text style={{ color: colors.ink, fontSize: 16 }}>Optional: how did that go?</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
-            {([['better', 'A bit easier'], ['same', 'About the same'], ['worse', 'Worse'], ['skipped', 'Skip']] as const).map(([k, label]) => (
-              <Button key={k} label={label} kind={k === 'skipped' ? 'quiet' : 'outline'} onPress={() => answer(k)} style={{ flexBasis: '47%', flexGrow: 1 }} />
-            ))}
-          </View>
-          <Muted small>How it felt, not proof the sound helped. Headaches also change with time, rest and medicine.</Muted>
-        </Card>
-      )}
-
-      {status ? <Muted>{status}</Muted> : null}
 
       <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14, gap: 6 }}>
         <Muted small>Your sound is made on this phone and nothing leaves it. Still is for comfort; it does not diagnose, treat or prevent migraine. A new, sudden or worst-ever headache, or weakness, numbness, confusion or trouble speaking: get medical help now.</Muted>

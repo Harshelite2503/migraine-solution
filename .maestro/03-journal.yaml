@@ -8,5 +8,7 @@ name: Journal
 - extendedWaitUntil:
     visible: "Your hard days"
     timeout: 10000
-- assertVisible: "Episodes (1)"
+- scrollUntilVisible:
+    element: "Episodes \\(1\\)"
+    direction: DOWN
 - takeScreenshot: 09-journal

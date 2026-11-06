@@ -24,12 +24,15 @@ name: Build my sound
     direction: DOWN
 - takeScreenshot: 07-listening-test
 - tapOn: "Play A then B"
+# The play button reads "Playing…" while A and B play, then "Play again".
 - extendedWaitUntil:
-    visible: "Playing A…"
+    visible: "Playing…"
     timeout: 8000
 - extendedWaitUntil:
-    visible: "Which feels calmer?"
-    timeout: 30000
+    visible: "Play again"
+    timeout: 40000
 - tapOn: "A felt calmer"
-- assertVisible: "Noted. Play the next pair when you are ready."
+- scrollUntilVisible:
+    element: "Noted. Play the next pair when you are ready."
+    direction: DOWN
 - takeScreenshot: 08-after-choice

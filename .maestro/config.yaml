@@ -1,0 +1,9 @@
+# Run the flows in this order: the journal check relies on the quiet-room session.
+flows:
+  - "*.yaml"
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - Quiet room
+    - Build my sound
+    - Journal
