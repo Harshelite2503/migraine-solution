@@ -5,6 +5,8 @@ set -euo pipefail
 UPLOAD_URL="$1"
 REPO="${2:-https://github.com/shivankur-code/migraine-solution}"
 BRANCH="${3:-main}"
+# Optional: AI review server for the app (baked in at build time).
+export EXPO_PUBLIC_RECIPE_API_URL="${4:-}" EXPO_PUBLIC_RECIPE_API_KEY="${5:-}"
 STATUS=/var/log/still-build.status
 echo running > "$STATUS"
 trap 'echo failed > "$STATUS"' ERR

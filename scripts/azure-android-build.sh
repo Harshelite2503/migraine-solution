@@ -2,6 +2,7 @@
 # Build the Android APK on a temporary Azure VM, then delete the VM.
 # Needs: az CLI signed in (az login). The APK stays in a small storage account (pennies a month)
 # and you get a download link that works for 7 days. Usage: scripts/azure-android-build.sh [branch]
+# To enable the AI review in the app, export EXPO_PUBLIC_RECIPE_API_URL and EXPO_PUBLIC_RECIPE_API_KEY first.
 set -euo pipefail
 BRANCH="${1:-main}"
 LOCATION="${LOCATION:-eastus}"
@@ -46,7 +47,7 @@ done
 
 SCRIPT="$(base64 -w0 < "$HERE/vm-build-android.sh")"
 az vm run-command invoke -g "$VM_RG" -n "$VM" --command-id RunShellScript -o none --scripts \
-  "echo $SCRIPT | base64 -d > /root/build.sh && chmod +x /root/build.sh && setsid nohup /root/build.sh '$BASE?$W_SAS' https://github.com/shivankur-code/migraine-solution '$BRANCH' > /var/log/still-build.log 2>&1 < /dev/null &"
+  "echo $SCRIPT | base64 -d > /root/build.sh && chmod +x /root/build.sh && setsid nohup /root/build.sh '$BASE?$W_SAS' https://github.com/shivankur-code/migraine-solution '$BRANCH' '${EXPO_PUBLIC_RECIPE_API_URL:-}' '${EXPO_PUBLIC_RECIPE_API_KEY:-}' > /var/log/still-build.log 2>&1 < /dev/null &"
 
 echo "Building (usually 20–35 minutes)…"
 while true; do
