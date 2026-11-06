@@ -23,6 +23,10 @@ name: Quiet room
     visible: "this text never appears"
     timeout: 5000
     optional: true
+# If the screen has dimmed itself (15 s after play), the first tap only brightens it.
+- tapOn:
+    text: "Screen dimmed. Tap to brighten."
+    optional: true
 - extendedWaitUntil:
     visible: "This is making it worse"
     timeout: 3000
