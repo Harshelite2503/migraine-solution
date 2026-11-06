@@ -8,10 +8,11 @@ name: Quiet room
     visible: "Rest here."
     timeout: 20000
 - takeScreenshot: 01-quiet-room
-- waitForAnimationToEnd
-# Give the background renderer time to prepare the sound, as a person would while reading.
-- swipe: { direction: UP, duration: 400 }
-- swipe: { direction: DOWN, duration: 400 }
+# Give the background renderer a few seconds to prepare the sound, as a person would while reading.
+- extendedWaitUntil:
+    visible: "this text never appears"
+    timeout: 4000
+    optional: true
 - tapOn: "Play my sound"
 # The play control's label is "Getting ready" until the sound has started.
 - extendedWaitUntil:
