@@ -4,7 +4,7 @@ import { Switch, Text, View } from 'react-native';
 import { EVIDENCE } from '../../recipe/evidence.js';
 import { describeRecipe } from '../../recipe/recipe.js';
 import { recipeFor, type AnyState, type Profile } from '../../lib/profile';
-import { aiAvailable, requestReview } from '../../lib/ai';
+import { aiAvailable, requestReview, reviewPayload } from '../../lib/ai';
 import { loadJournal } from '../../lib/storage';
 import * as player from '../../lib/player';
 import { Button, H2, Muted, Segmented } from '../../lib/ui';
@@ -21,6 +21,7 @@ export function RecipeCard({ profile, onChange }: Props) {
   const [state, setState] = useState<AnyState>('attack');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const [preview, setPreview] = useState<string | null>(null);
   const { recipe: r, why } = recipeFor(profile, state);
   const d = describeRecipe(r);
   const rows: [string, string][] = [
@@ -41,7 +42,7 @@ export function RecipeCard({ profile, onChange }: Props) {
     try {
       const ai = await requestReview(profile, await loadJournal());
       onChange({ ...profile, aiReview: ai });
-      setNote(ai.rationale.length ? 'Review added. Changes marked "AI review" below; the safety limits still apply.' : 'The review suggested no changes.');
+      setNote(ai.rationale.length ? 'Review added. Changes are marked "AI review" above; the safety limits still apply.' : 'Review added: no changes needed.');
     } catch { setNote('The review could not be reached. Your recipe still works without it.'); }
     setBusy(false);
   };
@@ -80,6 +81,14 @@ export function RecipeCard({ profile, onChange }: Props) {
       {aiAvailable
         ? <Button kind="primary" label={busy ? 'Reviewing…' : 'Ask AI to review my sound'} onPress={review} disabled={!profile.consentAI || busy} />
         : <Muted small>AI review is not set up in this build of the app.</Muted>}
+      <Button kind="quiet" icon="eye-outline" label={preview ? 'Hide what would be sent' : 'See exactly what would be sent'} onPress={async () => setPreview(preview ? null : JSON.stringify(reviewPayload(profile, await loadJournal()), null, 1))} />
+      {preview ? <Text selectable style={{ color: colors.muted, fontSize: 11, fontFamily: 'Courier' }}>{preview}</Text> : null}
+      {profile.aiReview?.summary ? (
+        <View style={{ borderLeftWidth: 2, borderLeftColor: colors.accent, paddingLeft: 12, gap: 4 }}>
+          <Text style={{ color: colors.ink, fontSize: 14, lineHeight: 20 }}>{profile.aiReview.summary}</Text>
+          <Muted small>AI review · {new Date(profile.aiReview.at).toLocaleDateString()}</Muted>
+        </View>
+      ) : null}
       {profile.aiReview?.cautions?.map((c, i) => <Muted key={`c${i}`} small>Note: {c}</Muted>)}
       {profile.aiReview?.questions?.length ? <Muted small>Worth thinking about: {profile.aiReview.questions.join(' ')}</Muted> : null}
       {profile.aiReview ? <Button kind="quiet" label="Remove the AI review" onPress={() => onChange({ ...profile, aiReview: null })} /> : null}

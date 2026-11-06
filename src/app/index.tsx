@@ -1,8 +1,8 @@
-// Quiet room: the screen the app opens on. Silence first, then the person's comfort sound, then a
-// softer version. No questions while anything plays; one optional check-in afterwards.
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StatusBar, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Quiet room: the screen the app opens on. One large control plays the person's own sound; a dark
+// screen and a softer version sit beside it. No questions while anything plays; one optional
+// check-in afterwards. Sounds are prepared in the background, so pressing play is instant.
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Pressable, StatusBar, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { applyAdjustments, describeRecipe } from '../recipe/recipe.js';
 import { clampRecipe } from '../recipe/bounds.js';
@@ -10,21 +10,24 @@ import { pendingFollowUp } from '../engine/journal-store.js';
 import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
 import { loadJournal, loadProfile, saveJournal, saveProfile, type Session } from '../lib/storage';
 import * as player from '../lib/player';
-import { Button, H1, Muted, Segmented, styles } from '../lib/ui';
+import { Button, Card, Eyebrow, H1, Ionicons, Muted, Screen, Segmented, tap, type IconName } from '../lib/ui';
 import { colors } from '../lib/theme';
 
 type Choice = Session['choice'];
 type Live = { id: string; at: string; state: State; choice: Choice; startMs: number; levelDb: number | null; worse: boolean };
-const STATES: { value: State; label: string }[] = [
-  { value: 'attack', label: 'Headache now' }, { value: 'warning', label: 'Warning signs' }, { value: 'recovering', label: 'Recovering' },
+const STATES: { value: State; label: string; icon: IconName }[] = [
+  { value: 'attack', label: 'Headache', icon: 'thunderstorm-outline' },
+  { value: 'warning', label: 'Warning', icon: 'cloudy-outline' },
+  { value: 'recovering', label: 'Recovering', icon: 'leaf-outline' },
 ];
-const TIMERS = [{ value: '15', label: '15 min' }, { value: '30', label: '30 min' }, { value: '60', label: '60 min' }, { value: '0', label: 'No timer' }];
+const TIMERS = [{ value: '15', label: '15 min' }, { value: '30', label: '30 min' }, { value: '60', label: '1 hr' }, { value: '0', label: 'Off' }];
 
 export default function QuietRoom() {
   const [profile, setProfile] = useState<Profile>(freshProfile());
   const [state, setState] = useState<State>('attack');
   const [timer, setTimer] = useState('30');
   const [playing, setPlaying] = useState<Choice | null>(null);
+  const [preparing, setPreparing] = useState(false);
   const [dark, setDark] = useState(false);
   const [checkFor, setCheckFor] = useState<string | null>(null);
   const [status, setStatus] = useState('');
@@ -36,6 +39,16 @@ export default function QuietRoom() {
     loadJournal().then(j => { const p = pendingFollowUp(j); if (p && !live.current) setCheckFor(p.id); });
   }, []));
   useEffect(() => () => { player.stop(0.5); }, []);
+
+  /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
+  const recipes = useMemo(() => {
+    const comfort = recipeFor(profile, state).recipe;
+    const softer = clampRecipe(applyAdjustments(comfort, { tiltDbPerOct: comfort.tiltDbPerOct - 1.5, cutoffHz: comfort.cutoffHz * 0.6, swellDb: 0, levelOffsetDb: SOFTER_DB }), state, comfort.levelDb);
+    return { comfort, softer };
+  }, [profile, state]);
+
+  // Prepare both sounds for this state while the screen is idle.
+  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer]); }, [recipes]);
 
   const begin = (choice: Choice, levelDb: number | null) => {
     const at = new Date();
@@ -54,40 +67,32 @@ export default function QuietRoom() {
     if (ask && !s.worse) setCheckFor(s.id);
   };
 
-  /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
-  const recipeOf = (choice: 'comfort' | 'softer') => {
-    const r = recipeFor(profile, state).recipe;
-    if (choice === 'comfort') return r;
-    return clampRecipe(applyAdjustments(r, { tiltDbPerOct: r.tiltDbPerOct - 1.5, cutoffHz: r.cutoffHz * 0.6, swellDb: 0, levelOffsetDb: SOFTER_DB }), state, r.levelDb);
-  };
-
   const playSound = async (choice: 'comfort' | 'softer') => {
-    await end({ ask: false });
-    setCheckFor(null);
-    const r = recipeOf(choice);
-    setPlaying(choice);
-    setStatus('Preparing your sound…');
+    const r = recipes[choice];
+    // Update the screen first; finish the bookkeeping and loading after.
+    setPlaying(choice); setCheckFor(null); setPreparing(true); setStatus('');
+    const previous = live.current; live.current = null;
+    if (previous) { live.current = previous; end({ ask: false }); }
     begin(choice, r.levelDb);
     try {
       const uri = await player.recipeFile(r);
       if (live.current?.choice !== choice) return;
-      await player.play(uri, { levelDb: r.levelDb, fadeIn: r.fadeInS, title: choice === 'softer' ? 'Softer and darker' : 'My comfort sound' });
+      await player.play(uri, { levelDb: r.levelDb, fadeIn: r.fadeInS, title: choice === 'softer' ? 'Softer and darker' : 'My sound' });
     } catch {
-      setStatus('Could not start the sound on this phone.'); setPlaying(null); live.current = null; return;
+      setStatus('Could not start the sound on this phone.'); setPlaying(null); live.current = null; setPreparing(false); return;
     }
+    setPreparing(false);
     const minutes = Number(timer);
     if (minutes) sleep.current = setTimeout(() => { player.stop(60); setTimeout(() => { end({ ask: false }); setPlaying(null); setStatus('Faded to silence. Rest well.'); }, 61000); }, Math.max(0, minutes - 1) * 60000);
-    const what = choice === 'softer' ? 'A softer, darker version of your sound' : built ? 'Your sound' : 'A gentle, dark starting sound';
-    setStatus(`${what} is fading in over ${r.fadeInS.toFixed(0)} seconds${minutes ? ` and fades out after ${minutes} minutes` : ''}. It keeps playing if you lock the phone. Turn the volume down if it is too much.`);
+    setStatus(`Fading in over ${r.fadeInS.toFixed(0)} seconds${minutes ? ` · fades out after ${minutes} min` : ''}. Keeps playing with the phone locked.`);
   };
 
-  const stopSound = async () => { player.stop(3); setPlaying(null); setStatus('Fading to silence.'); await end(); };
-
-  const darkOnly = async () => { player.stop(2); setPlaying(null); await end({ ask: false }); setCheckFor(null); begin('silence', null); setDark(true); };
-  const leaveDark = async () => { setDark(false); if (live.current?.choice === 'silence') await end(); };
+  const stopSound = () => { player.stop(3); setPlaying(null); setPreparing(false); setStatus('Fading to silence.'); end(); };
+  const darkOnly = () => { player.stop(2); setPlaying(null); end({ ask: false }); setCheckFor(null); begin('silence', null); setDark(true); };
+  const leaveDark = () => { setDark(false); if (live.current?.choice === 'silence') end(); };
 
   const worse = async () => {
-    player.stop(1.5); setPlaying(null);
+    player.stop(1.5); setPlaying(null); setPreparing(false);
     const s = live.current?.state ?? state;
     if (live.current) live.current.worse = true;
     await end({ ask: false });
@@ -97,83 +102,107 @@ export default function QuietRoom() {
   };
 
   const answer = async (follow: 'better' | 'same' | 'worse' | 'skipped') => {
-    const journal = await loadJournal();
-    const s = journal.sessions.find(x => x.id === checkFor);
-    if (s) { s.followUp = follow; await saveJournal(journal); }
-    setCheckFor(null);
+    const id = checkFor; setCheckFor(null);
     setStatus(follow === 'skipped' ? 'Okay. Rest well.' : 'Noted. Rest well.');
+    const journal = await loadJournal();
+    const s = journal.sessions.find(x => x.id === id);
+    if (s) { s.followUp = follow; await saveJournal(journal); }
   };
 
-  const changeState = async (next: State) => {
-    if (playing || live.current) { player.stop(2); setPlaying(null); await end({ ask: false }); setStatus('State changed. Press a choice again to hear it adjusted.'); }
+  const changeState = (next: State) => {
+    if (playing || live.current) { player.stop(2); setPlaying(null); end({ ask: false }); setStatus('State changed. Press play again to hear it adjusted.'); }
     setState(next);
   };
 
   const built = progress(profile).done >= 3;
-  const mine = recipeFor(profile, state).recipe;
-  const d = describeRecipe(mine);
+  const d = describeRecipe(recipes.comfort);
+  const orbOn = playing === 'comfort' || playing === 'softer';
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <H1>Quiet room</H1>
-        <Muted>Nothing plays until you press it. Silence is always fine.</Muted>
-        <Segmented options={STATES} value={state} onChange={changeState} />
+    <Screen>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Eyebrow>Still · quiet room</Eyebrow>
+        <Ionicons name="moon-outline" size={18} color={colors.moon} />
+      </View>
+      <H1>How is your head?</H1>
+      <Segmented options={STATES} value={state} onChange={changeState} />
 
-        <Choice title="Dark screen, no sound" body="Just rest. Tap anywhere to come back." onPress={darkOnly} />
-        <Choice title="My comfort sound" active={playing === 'comfort'} onPress={() => playSound('comfort')}
-          body={built ? `${d.tilt[0].toUpperCase() + d.tilt.slice(1)}, ${d.texture}, softened above ${Math.round(mine.cutoffHz)} Hz. Plays ${Math.abs(mine.levelDb).toFixed(0)} dB below your usual level.`
-            : `Not personalised yet, so a gentle, dark starting sound plays ${Math.abs(mine.levelDb).toFixed(0)} dB below the usual level. Build your sound on a calmer day.`} />
-        <Choice title="Softer and darker" active={playing === 'softer'} onPress={() => playSound('softer')} body="Your sound, 6 dB quieter, with a duller top end and no swell." />
-
-        {playing && (
-          <View style={{ gap: 10 }}>
-            <Button kind="primary" label="■  Fade to silence" onPress={stopSound} />
-            <Button label="Dark screen while it plays" onPress={() => setDark(true)} />
-            <Button label="This is making it worse" onPress={worse} />
-          </View>
-        )}
-
-        <View style={{ gap: 8 }}>
-          <Muted small>Fade out after</Muted>
-          <Segmented options={TIMERS} value={timer} onChange={setTimer} />
-        </View>
-
-        {checkFor && !playing && (
-          <View style={styles.card}>
-            <Text style={{ color: colors.ink, fontSize: 16 }}>Optional: how did that go?</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-              {([['better', 'A bit easier'], ['same', 'About the same'], ['worse', 'Worse'], ['skipped', 'Skip']] as const).map(([k, label]) => (
-                <Button key={k} label={label} onPress={() => answer(k)} style={{ flexBasis: '48%', flexGrow: 1 }} />
-              ))}
+      {/* The one big control */}
+      <View style={{ alignItems: 'center', paddingVertical: 14, gap: 14 }}>
+        <Pressable
+          accessibilityRole="button" accessibilityLabel={orbOn ? 'Fade to silence' : 'Play my sound'}
+          onPressIn={tap} onPress={() => (orbOn ? stopSound() : playSound('comfort'))}
+          style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}>
+          <View style={{ width: 236, height: 236, borderRadius: 118, borderWidth: 1, borderColor: orbOn ? 'rgba(169,199,155,0.55)' : colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,199,155,0.05)' }}>
+            <View style={{ width: 184, height: 184, borderRadius: 92, alignItems: 'center', justifyContent: 'center', backgroundColor: orbOn ? 'rgba(169,199,155,0.16)' : 'rgba(169,199,155,0.09)', borderWidth: 1, borderColor: 'rgba(169,199,155,0.25)' }}>
+              <Ionicons name={orbOn ? 'stop' : 'play'} size={46} color={colors.accent} style={{ marginLeft: orbOn ? 0 : 6 }} />
+              <Text style={{ color: colors.ink, fontSize: 15, marginTop: 8 }}>{preparing ? 'Getting ready…' : orbOn ? (playing === 'softer' ? 'Softer · playing' : 'Playing') : 'My sound'}</Text>
             </View>
-            <Muted small>This is how it felt, not proof the sound helped. Headaches also change with time, rest and medicine.</Muted>
           </View>
-        )}
+        </Pressable>
+        <Text style={{ color: colors.muted, fontSize: 13.5, textAlign: 'center', lineHeight: 20, maxWidth: 320 }}>
+          {built
+            ? `${d.tilt[0].toUpperCase() + d.tilt.slice(1)}, ${d.texture}. Softened above ${Math.round(recipes.comfort.cutoffHz)} Hz, ${Math.abs(recipes.comfort.levelDb).toFixed(0)} dB below your usual level.`
+            : 'A gentle, dark starting sound. Build your own sound on a calmer day.'}
+        </Text>
+      </View>
 
-        {status ? <Muted>{status}</Muted> : null}
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        <RoundAction icon="moon" label="Dark screen" sub="No sound" onPress={darkOnly} />
+        <RoundAction icon="water-outline" label="Softer" sub="Darker, 6 dB quieter" active={playing === 'softer'} onPress={() => (playing === 'softer' ? stopSound() : playSound('softer'))} />
+      </View>
 
-        <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14, gap: 6 }}>
-          <Muted small>Still is for comfort. It does not diagnose, treat or prevent migraine. A new, sudden or worst-ever headache, or weakness, numbness, confusion or trouble speaking: get medical help now.</Muted>
-          <Muted small>Everything is saved only on this phone.</Muted>
+      {playing && (
+        <View style={{ gap: 10 }}>
+          <Button label="Dark screen while it plays" icon="contrast-outline" onPress={() => setDark(true)} />
+          <Button kind="warn" label="This is making it worse" icon="hand-left-outline" onPress={worse} />
         </View>
-      </ScrollView>
+      )}
+
+      <View style={{ gap: 8 }}>
+        <Eyebrow>Fade out after</Eyebrow>
+        <Segmented options={TIMERS} value={timer} onChange={setTimer} />
+      </View>
+
+      {checkFor && !playing && (
+        <Card accent>
+          <Text style={{ color: colors.ink, fontSize: 16 }}>Optional: how did that go?</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+            {([['better', 'A bit easier'], ['same', 'About the same'], ['worse', 'Worse'], ['skipped', 'Skip']] as const).map(([k, label]) => (
+              <Button key={k} label={label} kind={k === 'skipped' ? 'quiet' : 'outline'} onPress={() => answer(k)} style={{ flexBasis: '47%', flexGrow: 1 }} />
+            ))}
+          </View>
+          <Muted small>How it felt, not proof the sound helped. Headaches also change with time, rest and medicine.</Muted>
+        </Card>
+      )}
+
+      {status ? <Muted>{status}</Muted> : null}
+
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 14, gap: 6 }}>
+        <Muted small>Your sound is made on this phone and nothing leaves it. Still is for comfort; it does not diagnose, treat or prevent migraine. A new, sudden or worst-ever headache, or weakness, numbness, confusion or trouble speaking: get medical help now.</Muted>
+      </View>
 
       <Modal visible={dark} animationType="none" transparent={false} onRequestClose={leaveDark} statusBarTranslucent>
         <StatusBar hidden />
         <Pressable onPress={leaveDark} accessibilityLabel="Dark screen. Tap to come back." style={{ flex: 1, backgroundColor: colors.black, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 48 }}>
-          <Text style={{ color: '#1b1f1c', fontSize: 12 }}>Tap to come back</Text>
+          <Text style={{ color: '#161a18', fontSize: 12 }}>Tap to come back</Text>
         </Pressable>
       </Modal>
-    </SafeAreaView>
+    </Screen>
   );
 }
 
-function Choice({ title, body, onPress, active }: { title: string; body: string; onPress: () => void; active?: boolean }) {
+function RoundAction({ icon, label, sub, onPress, active }: { icon: IconName; label: string; sub: string; onPress: () => void; active?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.card, active && { borderColor: colors.ink }, pressed && { opacity: 0.8 }]}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{body}</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPressIn={tap} onPress={onPress}
+      style={({ pressed }) => [{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: active ? 'rgba(169,199,155,0.55)' : colors.line, backgroundColor: colors.surface }, pressed && { transform: [{ scale: 0.97 }], opacity: 0.85 }]}>
+      <View style={{ width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceStrong }}>
+        <Ionicons name={icon} size={20} color={colors.moon} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: colors.ink, fontSize: 15, fontWeight: '600' }}>{label}</Text>
+        <Text style={{ color: colors.muted, fontSize: 12 }}>{sub}</Text>
+      </View>
     </Pressable>
   );
 }

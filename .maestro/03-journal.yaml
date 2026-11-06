@@ -1,0 +1,12 @@
+# Journal: the session from the quiet-room flow shows up as an episode.
+appId: com.stillsoundlab.still
+name: Journal
+---
+- launchApp
+- tapOn:
+    id: "tab-journal"
+- extendedWaitUntil:
+    visible: "Your hard days"
+    timeout: 10000
+- assertVisible: "Episodes (1)"
+- takeScreenshot: 09-journal

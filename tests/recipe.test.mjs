@@ -91,4 +91,10 @@ for (const test of TESTS) {
 }
 // "Both unpleasant" ends a test early.
 assert.ok(answer(testByKey('tilt'), startStaircase(testByKey('tilt')), 'neither').done);
-console.log('recipe ok');
+// The AI review summary carries no sensitive answers that sound tuning does not need.
+import('../src/recipe/review.js').then(({ buildReviewRequest }) => {
+  const sent = JSON.stringify(buildReviewRequest({ ...empty, intake: { aura: true, attacksPerMonth: '15+', currentlyHelps: ['music'], anxietyDuringAttacks: 1, dizziness: 1, worstSymptom: 'pain', bother: { high: 2 } } }, { normal: plain, attack: base }, null));
+  for (const word of ['aura', 'attacksPerMonth', 'currentlyHelps', 'anxietyDuringAttacks', 'dizziness', 'worstSymptom', '15+']) assert.ok(!sent.includes(word), word);
+  assert.ok(sent.includes('"soundBother":{"high":2}'));
+  console.log('recipe ok');
+});

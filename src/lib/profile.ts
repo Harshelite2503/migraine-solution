@@ -27,7 +27,7 @@ export type Intake = {
 };
 export type Measured = { value: number; trials: number; decisive?: number; at?: string };
 export type Tests = Partial<Record<'tilt' | 'cutoff' | 'tonal' | 'humHz' | 'swellDb' | 'swellPeriodS' | 'width' | 'harmonics', Measured>>;
-export type AiReview = { at: string; adjustments: Record<string, unknown>; rationale: { param: string; value?: unknown; why: string }[]; cautions?: string[]; questions?: string[] };
+export type AiReview = { at: string; summary?: string; adjustments: Record<string, unknown>; rationale: { param: string; value?: unknown; why: string }[]; cautions?: string[]; questions?: string[] };
 export type Profile = {
   schema: string;
   answers: Partial<Record<'sudden' | 'high' | 'low' | 'pulse', number>>;  // v1 quick questions
@@ -129,9 +129,22 @@ export function firstSound(profile: Profile): Point {
   return startingPoint(profile.intake.bother || profile.answers) as Point;
 }
 
+// Profiles are never mutated (every change makes a new object), so results can be cached per object.
+// This keeps redraws from refitting the preference model.
+const recipeCache = new WeakMap<Profile, Map<AnyState, ReturnType<typeof buildRecipe>>>();
+const championCache = new WeakMap<Profile, Point | null>();
+
 /** The full recipe for a state, with the reason for each setting. */
 export function recipeFor(profile: Profile, state: AnyState) {
-  return buildRecipe(profile, state, { learned: champion(profile), learnedRounds: profile.rounds });
+  let byState = recipeCache.get(profile);
+  if (!byState) { byState = new Map(); recipeCache.set(profile, byState); }
+  let result = byState.get(state);
+  if (!result) {
+    if (!championCache.has(profile)) championCache.set(profile, champion(profile));
+    result = buildRecipe(profile, state, { learned: championCache.get(profile) ?? null, learnedRounds: profile.rounds });
+    byState.set(state, result);
+  }
+  return result;
 }
 
 /** How much of "Build my sound" is done, 0–1, and what each step contributes. */

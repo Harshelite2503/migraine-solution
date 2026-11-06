@@ -26,6 +26,8 @@ jobs:
   ios-simulator:
     needs: checks
     runs-on: macos-26
+    permissions:
+      contents: write
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -54,3 +56,48 @@ jobs:
           name: Still-ios-simulator
           path: Still-simulator.zip
           retention-days: 14
+
+      # ---- Test the app on an iPhone simulator, like a person would ----
+      - name: Boot an iPhone simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)['devices']
+          runtimes = sorted((k for k in d if 'iOS' in k), reverse=True)
+          print(next(x['udid'] for k in runtimes for x in d[k] if x['name'].startswith('iPhone') and 'Pro' in x['name']))")
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100
+          xcrun simctl list devices | grep Booted
+      - name: Install Still
+        run: xcrun simctl install "$UDID" build/Build/Products/Release-iphonesimulator/Still.app
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+      - name: Run the app tests
+        run: |
+          mkdir -p ios-results
+          maestro --device "$UDID" test .maestro --format junit --output ios-results/report.xml --test-output-dir ios-results 2>&1 | tee ios-results/maestro.log
+      - name: Collect screenshots
+        if: always()
+        run: |
+          mkdir -p ios-results/screens
+          find ios-results . -maxdepth 4 -name '0*.png' -not -path './ios-results/screens/*' -exec cp {} ios-results/screens/ \; 2>/dev/null || true
+          ls -la ios-results/screens
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Still-ios-test-results
+          path: ios-results
+          retention-days: 14
+      - name: Publish results to the ios-test-results branch
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          cd ios-results
+          git init -q && git checkout -q -b ios-test-results
+          git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          echo "iOS test results for ${{ github.sha }} (run ${{ github.run_id }})" > README.md
+          git add -A && git commit -qm "iOS test results for ${{ github.sha }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ios-test-results

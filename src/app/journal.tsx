@@ -1,11 +1,10 @@
 // Journal: headache episodes, what was chosen, how it felt, and the privacy-minimal pilot summary.
 import { useCallback, useState } from 'react';
-import { Alert, ScrollView, Share, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, Share, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { episodes, freshJournal, metrics, pilotSummary, sanitizeJournal } from '../engine/journal-store.js';
 import { clearJournal, loadJournal, saveJournal, type Journal } from '../lib/storage';
-import { Button, H1, H2, Muted, styles } from '../lib/ui';
+import { Button, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
 import { colors, fonts } from '../lib/theme';
 
 const CHOICES = { silence: 'Dark screen, no sound', comfort: 'My comfort sound', softer: 'Softer and darker' } as const;
@@ -46,9 +45,9 @@ export default function JournalScreen() {
   ]);
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg }} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.screen}>
-        <H1>Journal</H1>
+    <Screen>
+        <Eyebrow>Still · journal</Eyebrow>
+        <H1>Your hard days</H1>
         <Muted>Each time you use the quiet room, Still notes the date, what you chose and for how long. Sessions within 12 hours count as one episode. Nothing leaves this phone unless you share it.</Muted>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -103,8 +102,7 @@ export default function JournalScreen() {
           <Button kind="quiet" label="Clear journal" onPress={clear} />
         </View>
         {note ? <Muted>{note}</Muted> : null}
-      </ScrollView>
-    </SafeAreaView>
+    </Screen>
   );
 }
 

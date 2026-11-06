@@ -19,7 +19,16 @@ This is the React Native (Expo) version of the web prototype in [Harshelite2503/
 | **Journal** (`src/app/journal.tsx`) | Episodes (sessions within 12 hours count as one), what you chose, how it felt afterwards, headaches noted without opening Still, and a privacy-minimal pilot summary shared through the phone's share sheet. |
 | **Tune my sound** (`src/app/tune.tsx`) | Four questions pick a gentle first sound. Then A/B rounds of six-second sounds at matched loudness train a Gaussian-process preference model on four qualities: darkness, noise vs hum, slow swell, and how soft the top end is. |
 
-All data stays on the phone (AsyncStorage). There are no accounts, analytics or network calls.
+## Privacy
+
+**Your sound is made entirely on the phone.** The questionnaire, comfort contour, listening tests, preference learning, recipe rules and sound synthesis all run locally. Answers and the journal are stored only on the device (AsyncStorage). There are no accounts, no analytics, no tracking and no ads.
+
+The only feature that sends anything is the **optional AI review**. It is off until the person switches it on, and they can preview the exact data first.
+- **Minimised:** it sends sound-relevant answers only, as simple flags (for example "dizzy: yes"), plus measured values and journal counts. It never sends aura, headache frequency, what currently helps, exact anxiety or dizziness levels, names, dates, notes or device identifiers.
+- **Not stored and not used for training:** the server keeps nothing, and the OpenRouter requests use `data_collection: "deny"`, so they only go to providers that neither store nor train on them.
+- **Bounded:** whatever comes back is validated and clamped by the on-device safety rules.
+
+Without the AI review, Still is fully offline after install.
 
 ## How sound works
 

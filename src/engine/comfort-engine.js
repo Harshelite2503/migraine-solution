@@ -154,6 +154,52 @@ export function eqCurveDb(hz, points) {
   return clamp(g, -24, 0);
 }
 
+/** Pre-sort a contour or EQ point list once, so per-bin lookups do no sorting or filtering. */
+function prepareCurve(points, kind) {
+  if (!Array.isArray(points) || !points.length) return null;
+  if (kind === 'contour') {
+    const pts = points.filter(q => Number.isFinite(q?.hz) && Number.isFinite(q?.ceilingDb)).sort((a, b) => a.hz - b.hz);
+    if (pts.length < 2) return null;
+    const sorted = pts.map(q => q.ceilingDb).sort((a, b) => a - b);
+    const median = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2;
+    return { lf: pts.map(q => Math.log2(q.hz)), g: pts.map(q => q.ceilingDb - median), lo: -12, hi: 0 };
+  }
+  const pts = points.filter(q => Number.isFinite(q?.hz) && q.hz > 0 && Number.isFinite(q?.gainDb)).sort((a, b) => a.hz - b.hz);
+  if (!pts.length) return null;
+  return { lf: pts.map(q => Math.log2(q.hz)), g: pts.map(q => q.gainDb), lo: -24, hi: 0 };
+}
+
+function curveDb(curve, hz) {
+  const lf = Math.log2(hz), { lf: xs, g } = curve, last = xs.length - 1;
+  let v;
+  if (last === 0 || lf <= xs[0]) v = g[0];
+  else if (lf >= xs[last]) v = g[last];
+  else {
+    let i = 0;
+    while (xs[i + 1] < lf) i++;
+    v = g[i] + (lf - xs[i]) / (xs[i + 1] - xs[i]) * (g[i + 1] - g[i]);
+  }
+  return clamp(v, curve.lo, curve.hi);
+}
+
+/**
+ * Inverse FFT of two real signals at once: pack L + iR into one complex spectrum, transform,
+ * and read left from the real part and right from the imaginary part. Half the work of two.
+ */
+function inverseRealPair(L, R, n) {
+  const re = new Float64Array(n), im = new Float64Array(n);
+  for (let k = 1; k < n / 2; k++) {
+    const aL = L.re[k], bL = L.im[k], aR = R.re[k], bR = R.im[k];
+    re[k] = aL - bR; im[k] = bL + aR;
+    re[n - k] = aL + bR; im[n - k] = aR - bL;
+  }
+  for (let k = 0; k < n; k++) im[k] = -im[k];
+  fft(re, im);
+  const left = new Float32Array(n), right = new Float32Array(n);
+  for (let i = 0; i < n; i++) { left[i] = re[i] / n; right[i] = -im[i] / n; }
+  return [left, right];
+}
+
 function shapeAmplitude(hz, p, opts) {
   if (hz < 20) return 0;
   const tilt = (hz / 1000) ** (p.tiltDbPerOctave / 6.0206);
@@ -162,8 +208,8 @@ function shapeAmplitude(hz, p, opts) {
   const mode = MODES[opts.mode] || MODES.normal;
   const shelfDb = Number.isFinite(opts.shelfDb) ? opts.shelfDb : mode.shelfDb;
   const shelf = shelfDb ? dbToAmp(shelfDb / (1 + (3000 / hz) ** 2)) : 1;
-  const eq = opts.contour ? dbToAmp(contourEqDb(hz, opts.contour)) : 1;
-  const cuts = opts.eq ? dbToAmp(eqCurveDb(hz, opts.eq)) : 1;
+  const eq = opts.contourCurve ? dbToAmp(curveDb(opts.contourCurve, hz)) : opts.contour && opts.contourCurve === undefined ? dbToAmp(contourEqDb(hz, opts.contour)) : 1;
+  const cuts = opts.eqCurve ? dbToAmp(curveDb(opts.eqCurve, hz)) : opts.eq && opts.eqCurve === undefined ? dbToAmp(eqCurveDb(hz, opts.eq)) : 1;
   return tilt * lowpass * highpass * shelf * eq * cuts;
 }
 
@@ -206,43 +252,59 @@ export function renderComfortLoop(x, opts = {}) {
   const half = n / 2;
   const target = 10 ** (REFERENCE_DBFS / 10);
 
+  // Per-bin spectral shape and loudness weight, computed once (the EQ curves are pre-sorted).
+  const shapeOpts = { ...opts, contourCurve: prepareCurve(opts.contour, 'contour'), eqCurve: prepareCurve(opts.eq, 'eq') };
+  const amp = new Float64Array(half), weight = new Float64Array(half);
+  for (let k = 1; k < half; k++) {
+    const hz = k * rate / n;
+    amp[k] = shapeAmplitude(hz, p, shapeOpts) / Math.SQRT2;
+    weight[k] = loudnessWeightPower(hz);
+  }
+  const power = (re, im) => {
+    let sum = 0;
+    for (let k = 1; k < half; k++) sum += weight[k] * (re[k] * re[k] + im[k] * im[k]);
+    return 2 * sum / (n * n);
+  };
+
   // Noise layer: shared + independent components give a natural, not-too-wide stereo image.
+  const sharedRe = new Float64Array(half + 1), sharedIm = new Float64Array(half + 1);
+  for (let k = 0; k <= half; k++) { sharedRe[k] = random.gauss(); sharedIm[k] = random.gauss(); }
   const layers = [];
-  const shared = Array.from({ length: half + 1 }, () => [random.gauss(), random.gauss()]);
   for (let c = 0; c < 2; c++) {
-    const re = new Float64Array(n), im = new Float64Array(n);
+    const re = new Float64Array(half), im = new Float64Array(half);
     for (let k = 1; k < half; k++) {
-      const amp = shapeAmplitude(k * rate / n, p, opts) / Math.SQRT2;
-      re[k] = amp * (Math.SQRT1_2 * shared[k][0] + Math.SQRT1_2 * random.gauss());
-      im[k] = amp * (Math.SQRT1_2 * shared[k][1] + Math.SQRT1_2 * random.gauss());
+      re[k] = amp[k] * (Math.SQRT1_2 * sharedRe[k] + Math.SQRT1_2 * random.gauss());
+      im[k] = amp[k] * (Math.SQRT1_2 * sharedIm[k] + Math.SQRT1_2 * random.gauss());
     }
     layers.push({ re, im });
   }
   // Tonal layer: harmonics placed exactly on FFT bins, so they loop cleanly; same phase in both ears.
-  const tone = { re: new Float64Array(n), im: new Float64Array(n) };
+  const toneRe = new Float64Array(half), toneIm = new Float64Array(half);
   const harmonics = clamp(Math.round(Number(opts.harmonics) || 16), 1, 16);
   for (let h = 1; h <= harmonics; h++) {
     const k = Math.round(h * toneHz * n / rate);
     if (k <= 0 || k >= half) break;
-    const amp = shapeAmplitude(k * rate / n, p, opts) / Math.sqrt(h) * n / 2;
+    const a = amp[k] * Math.SQRT2 / Math.sqrt(h) * n / 2;
     const phase = TAU * random();
-    tone.re[k] += amp * Math.cos(phase); tone.im[k] += amp * Math.sin(phase);
+    toneRe[k] += a * Math.cos(phase); toneIm[k] += a * Math.sin(phase);
   }
-  const tonePower = aWeightedPower(tone.re, tone.im, n, rate);
-  const channels = layers.map(layer => {
-    const noisePower = aWeightedPower(layer.re, layer.im, n, rate);
+  const tonePower = power(toneRe, toneIm);
+  const spectra = layers.map(layer => {
+    const noisePower = power(layer.re, layer.im);
     const noiseGain = noisePower > 0 ? Math.sqrt((1 - p.tonal) * target / noisePower) : 0;
     const toneGain = tonePower > 0 ? Math.sqrt(p.tonal * target / tonePower) : 0;
-    const re = new Float64Array(n), im = new Float64Array(n);
-    for (let k = 0; k < n; k++) {
-      re[k] = layer.re[k] * noiseGain + tone.re[k] * toneGain;
-      im[k] = layer.im[k] * noiseGain + tone.im[k] * toneGain;
+    const re = new Float64Array(half), im = new Float64Array(half);
+    for (let k = 1; k < half; k++) {
+      re[k] = layer.re[k] * noiseGain + toneRe[k] * toneGain;
+      im[k] = layer.im[k] * noiseGain + toneIm[k] * toneGain;
     }
     // Noise and tone are independent, so their powers add. Renormalize exactly anyway.
-    const total = aWeightedPower(re, im, n, rate);
-    if (total > 0) scaleSpectrum(re, im, Math.sqrt(target / total));
-    return inverseReal(re, im);
+    const total = power(re, im);
+    const g = total > 0 ? Math.sqrt(target / total) : 0;
+    for (let k = 1; k < half; k++) { re[k] *= g; im[k] *= g; }
+    return { re, im };
   });
+  const channels = inverseRealPair(spectra[0], spectra[1], n);
   // Slow swell, an integer number of cycles per loop so the loop stays seamless.
   if (swellDb > 0) {
     const seconds = n / rate;

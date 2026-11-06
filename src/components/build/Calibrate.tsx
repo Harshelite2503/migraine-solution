@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { CONTOUR_BANDS, recipeFor, type Profile } from '../../lib/profile';
 import * as player from '../../lib/player';
-import { Button, Muted } from '../../lib/ui';
+import { Button, Muted, tap } from '../../lib/ui';
 import { colors } from '../../lib/theme';
 
 type Props = { profile: Profile; onChange: (p: Profile) => void };
@@ -35,7 +35,7 @@ export function Contour({ profile, onChange }: Props) {
   const pressed = useRef(false);
 
   const down = async (hz: number) => {
-    pressed.current = true; setActive(hz);
+    tap(); pressed.current = true; setActive(hz);
     const uri = await player.bandFile(hz);
     const stopFn = await player.playRising(uri, START_DB, CAP_DB, RATE_DB_S);
     if (!pressed.current) { stopFn(); setActive(null); return; }

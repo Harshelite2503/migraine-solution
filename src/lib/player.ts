@@ -56,6 +56,26 @@ export async function recipeFile(recipe: RecipeLike, clip = false, longClip = fa
   });
 }
 
+/**
+ * Render sounds ahead of time, one at a time, when the app is idle, so pressing play is instant.
+ * Rendering a 12 s loop takes a second or more on a phone; cached files are reused across launches.
+ */
+type WarmItem = RecipeLike | { recipe: RecipeLike; clip: boolean; long?: boolean };
+let warmQueue: WarmItem[] = [];
+let warming = false;
+export function prewarm(recipes: WarmItem[], delayMs = 700) {
+  warmQueue = [...recipes];
+  if (warming) return;
+  warming = true;
+  const next = () => {
+    const item = warmQueue.shift();
+    if (!item || player) { warming = false; return; }   // stop while something plays: never compete with playback
+    const job = 'clip' in item && 'recipe' in item ? recipeFile(item.recipe, item.clip, item.long) : recipeFile(item as RecipeLike);
+    job.catch(() => {}).finally(() => setTimeout(next, 150));
+  };
+  setTimeout(next, delayMs);
+}
+
 /** Half-octave noise band for the comfort contour. */
 export async function bandFile(hz: number): Promise<string> {
   return writeOnce(`still-band-${hz}.wav`, () => renderBand(hz, { rate: RATE, log2Length: 17 }));

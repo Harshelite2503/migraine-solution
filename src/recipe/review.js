@@ -13,8 +13,9 @@ export const ADJUSTABLE = ['tiltDbPerOct', 'cutoffHz', 'tonal', 'humHz', 'swellD
 export const REVIEW_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['adjustments', 'rationale', 'cautions', 'questions'],
+  required: ['summary', 'adjustments', 'rationale', 'cautions', 'questions'],
   properties: {
+    summary: { type: 'string' },
     adjustments: {
       type: 'object',
       additionalProperties: false,
@@ -60,7 +61,7 @@ export function sanitizeReview(raw) {
     .filter(r => r.param && r.why)
     .slice(0, 12);
   const list = v => (Array.isArray(v) ? v.map(x => text(x, 300)).filter(Boolean).slice(0, 5) : []);
-  return { adjustments: adj, rationale, cautions: list(raw?.cautions), questions: list(raw?.questions) };
+  return { summary: text(raw?.summary, 900), adjustments: adj, rationale, cautions: list(raw?.cautions), questions: list(raw?.questions) };
 }
 
 /**
@@ -70,8 +71,23 @@ export function sanitizeReview(raw) {
 export function buildReviewRequest(profile, recipes, feedback) {
   const round = (v, d = 2) => (Number.isFinite(v) ? Math.round(v * 10 ** d) / 10 ** d : v);
   const strip = r => r && Object.fromEntries(Object.entries(r).filter(([k]) => !['sources', 'version'].includes(k)).map(([k, v]) => [k, typeof v === 'number' ? round(v) : v]));
+  const i = profile.intake || {};
+  // Data minimisation: only what tuning a sound needs. Aura, headache frequency, what currently
+  // helps, and exact anxiety or dizziness levels are never sent; the rest is reduced to flags.
+  const intake = {
+    soundBother: i.bother || {},
+    soundOftenBothersInAttacks: (i.attackSoundBother ?? 0) >= 2,
+    soundIsWorstSymptom: i.worstSymptom === 'sound',
+    dizzy: (i.dizziness ?? 0) >= 2,
+    motionSensitive: Array.isArray(i.otherSensitivities) && i.otherSensitivities.includes('motion'),
+    oftenVeryAnxious: i.anxietyDuringAttacks === 2,
+    listening: i.listening ?? null,
+    goal: i.goal ?? null,
+    loves: i.loves || [],
+    dislikes: i.dislikes || [],
+  };
   return {
-    intake: profile.intake || {},
+    intake,
     calibration: { contour: (profile.calibration?.contour || []).map(b => ({ hz: b.hz, ceilingDb: round(b.ceilingDb, 1) })) },
     tests: Object.fromEntries(Object.entries(profile.tests || {}).map(([k, v]) => [k, { value: round(v.value), trials: v.trials, decisive: v.decisive }])),
     learnedRounds: profile.rounds || 0,

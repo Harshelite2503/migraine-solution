@@ -14,6 +14,7 @@ let sent: any = null;
 const good: CreateFn = async p => {
   sent = p;
   return reply(JSON.stringify({
+    summary: 'I softened the top end a little.',
     adjustments: { cutoffHz: 1100, levelOffsetDb: -3, humHz: 9999, extraCuts: [{ hz: 3200, gainDb: -4 }, { hz: 4000, gainDb: 6 }] },
     rationale: [{ param: 'cutoffHz', why: 'Hiss bothers you a lot, so the top end is a little softer.', evidence: ['kumar2008', 'made-up-study'] }],
     cautions: [], questions: ['Do you usually listen lying down?'],
@@ -38,6 +39,7 @@ assert.equal(out.adjustments.humHz, undefined, 'out-of-range pitch dropped');
 assert.deepEqual(out.adjustments.extraCuts, [{ hz: 3200, gainDb: -4 }], 'boost dropped');
 assert.deepEqual(out.rationale[0].evidence, ['kumar2008']);
 assert.equal(out.questions.length, 1);
+assert.equal(out.summary, 'I softened the top end a little.');
 
 // 3. Refusal → no changes, a caution. Truncation and junk → errors.
 const refused = await reviewRecipe(anthropicModel(async () => reply('', 'refusal')), request);
@@ -67,6 +69,7 @@ assert.ok(FREE_MODELS.every(m => m.endsWith(':free')), 'default models are free'
 assert.equal(orReq.body.response_format.json_schema.strict, true);
 assert.deepEqual(orReq.body.response_format.json_schema.schema, REVIEW_SCHEMA);
 assert.equal(orReq.body.provider.require_parameters, true);
+assert.equal(orReq.body.provider.data_collection, 'deny');
 assert.equal(orReq.body.messages[0].content, SYSTEM_PROMPT);
 await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(200, { choices: [{ finish_reason: 'length', message: { content: '{' } }] }) }), request));
 await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(429, { error: { code: 429, message: 'rate limited' } }) }), request),

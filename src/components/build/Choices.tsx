@@ -1,6 +1,7 @@
 // Small question widgets used across "Build my sound".
 import { Pressable, Text, View } from 'react-native';
 import { colors } from '../../lib/theme';
+import { tick } from '../../lib/ui';
 
 export function Pick<T extends string | number | boolean>({ label, options, value, onChange }: {
   label: string; options: { value: T; label: string }[]; value: T | undefined; onChange: (v: T) => void;
@@ -42,8 +43,8 @@ export const SCALE_0_4 = ['Not at all', 'A little', 'Some', 'A lot', 'Severely']
 
 export function Chip({ label, on, onPress, role }: { label: string; on: boolean; onPress: () => void; role: 'radio' | 'checkbox' }) {
   return (
-    <Pressable accessibilityRole={role} accessibilityState={{ checked: on }} onPress={onPress}
-      style={{ borderWidth: 1, borderColor: on ? colors.ink : colors.line, backgroundColor: on ? colors.raised : 'transparent', borderRadius: 9, paddingVertical: 9, paddingHorizontal: 11 }}>
+    <Pressable accessibilityRole={role} accessibilityState={{ checked: on }} onPressIn={tick} onPress={onPress}
+      style={({ pressed }) => ({ borderWidth: 1, borderColor: on ? 'rgba(169,199,155,0.6)' : colors.line, backgroundColor: on ? 'rgba(169,199,155,0.14)' : colors.surface, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 13, opacity: pressed ? 0.75 : 1 })}>
       <Text style={{ color: on ? colors.ink : colors.muted, fontSize: 13 }}>{label}</Text>
     </Pressable>
   );

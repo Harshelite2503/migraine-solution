@@ -4,11 +4,11 @@ An Azure Function (`POST /api/review`) that asks a language model to review a pe
 against the research in `src/recipe/evidence.js`. It is optional: the app works fully without it.
 
 **Models, cheapest first:**
-- **Free OpenRouter models** (used whenever `OPENROUTER_API_KEY` is set): `nvidia/nemotron-3.5-super-vl:free`, then `dots-studio/dots-3-note-preview:free`. Both hold to the review's JSON schema. A review costs $0 and takes about 1–1.5 minutes. Free models are rate-limited and the list changes over time; override it with the `OPENROUTER_MODELS` app setting (comma-separated).
+- **Free OpenRouter models** (used whenever `OPENROUTER_API_KEY` is set): `dots-studio/dots-3-note-preview:free`, then `xingchen-agi/xing4.0-29b-a4b:free`. Requests set `data_collection: "deny"`, so they only reach providers that do not store or train on prompts. (Free NVIDIA Nemotron was dropped for that reason.) Both hold to the review's JSON schema. A review costs $0 and takes about 1–2 minutes. Free models are rate-limited and the list changes over time; override it with the `OPENROUTER_MODELS` app setting (comma-separated).
 - **Claude Opus 5.5** (paid; used only if there is no OpenRouter key and `ANTHROPIC_API_KEY` is set).
 
 - **Input:** a privacy-minimal summary built by `buildReviewRequest` in `src/recipe/review.js`. It contains answers, measured test values, the comfort contour and journal counts. It has no name, no dates and no notes.
-- **Output:** bounded adjustments, reasons that cite only listed research, cautions and up to three questions. The server validates the reply (`sanitizeReview`), and the app clamps it again to the safety limits in `src/recipe/bounds.js`. A review can never make a sound louder, add movement faster than 0.25 Hz, or boost any band.
+- **Output:** a short summary (always, including when nothing changes), bounded adjustments, reasons that cite only listed research, cautions and up to three questions. The server validates the reply (`sanitizeReview`), and the app clamps it again to the safety limits in `src/recipe/bounds.js`. A review can never make a sound louder, add movement faster than 0.25 Hz, or boost any band.
 - **Model call:** structured JSON output on both providers. On Claude: adaptive thinking at `high` effort, a cached system prompt, and `fallbacks: "default"`, which retries a declined request on Anthropic's recommended fallback model.
 - **Auth:** an Azure Functions key, sent by the app as `x-functions-key`. This is fine for a pilot. Before a public launch, put rate limiting or per-install tokens in front of it.
 

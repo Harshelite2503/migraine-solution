@@ -29,6 +29,14 @@ export function Tests({ profile, onChange }: Props) {
   useEffect(() => () => { run.current++; player.stop(0.3); }, []);
   useEffect(() => { if (test && (!stair || stair.key !== test.key)) { setStair(startStaircase(test)); setHeard(false); } }, [test?.key]);
 
+  // Prepare this round's pair in the background, so "Play A then B" starts at once.
+  useEffect(() => {
+    if (!test || !stair || stair.done) return;
+    const long = test.key === 'swellDb';
+    const [lo, hi] = pairFor(test, stair);
+    player.prewarm([{ recipe: variant(lo), clip: true, long }, { recipe: variant(hi), clip: true, long }], 400);
+  }, [test?.key, stair?.trials]);
+
   if (!test || !stair) {
     return <Muted>All listening tests are done. Your results are in your recipe below. You can redo any test by resetting it there.</Muted>;
   }

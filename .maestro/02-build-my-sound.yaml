@@ -1,0 +1,35 @@
+# Build my sound: questionnaire answers save, a listening test plays a pair and accepts a choice.
+appId: com.stillsoundlab.still
+name: Build my sound
+---
+- launchApp
+- tapOn:
+    id: "tab-sound"
+- extendedWaitUntil:
+    visible: "Build my sound"
+    timeout: 10000
+- takeScreenshot: 05-build-my-sound
+- tapOn: "About your headaches"
+- tapOn: "Usually"
+- tapOn: "The pain"
+- tapOn: "No"
+- takeScreenshot: 06-questions
+- tapOn: "About your headaches"
+- scrollUntilVisible:
+    element: "Six focused listening tests"
+    direction: DOWN
+- tapOn: "Six focused listening tests"
+- scrollUntilVisible:
+    element: "Play A then B"
+    direction: DOWN
+- takeScreenshot: 07-listening-test
+- tapOn: "Play A then B"
+- extendedWaitUntil:
+    visible: "Playing A…"
+    timeout: 8000
+- extendedWaitUntil:
+    visible: "Which feels calmer?"
+    timeout: 30000
+- tapOn: "A felt calmer"
+- assertVisible: "Noted. Play the next pair when you are ready."
+- takeScreenshot: 08-after-choice
