@@ -2,8 +2,8 @@
 // screen and a softer version sit beside it. No questions while anything plays; one optional
 // check-in afterwards. Sounds are prepared in the background, so pressing play is instant.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, Modal, Pressable, StatusBar, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { AccessibilityInfo, Animated, Easing, Pressable, StatusBar, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from 'expo-router';
 import { applyAdjustments } from '../recipe/recipe.js';
 import { clampRecipe } from '../recipe/bounds.js';
 import { pendingFollowUp } from '../engine/journal-store.js';
@@ -40,6 +40,7 @@ export default function QuietRoom() {
   const live = useRef<Live | null>(null);
   const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const breath = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
   const sleep = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusEffect(useCallback(() => {
@@ -71,6 +72,9 @@ export default function QuietRoom() {
     if (playingNow) dimTimer.current = setTimeout(() => setAutoDim(true), AUTO_DIM_MS);
   }, [playingNow]);
   useEffect(() => { armDim(); return () => { if (dimTimer.current) clearTimeout(dimTimer.current); }; }, [armDim]);
+  // Hide the tab bar while dimmed, so the whole screen goes dark.
+  const dimmed = autoDim && playingNow && !dark;
+  useEffect(() => { navigation.setOptions({ tabBarStyle: dimmed || dark ? { display: 'none' } : undefined }); }, [dimmed, dark, navigation]);
 
   /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
   const recipes = useMemo(() => {
@@ -155,8 +159,23 @@ export default function QuietRoom() {
   const haloOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] });
   const haloScale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
 
+  const dimLayer = dark ? (
+    // Dark screen: pure black, status bar hidden; one tap comes back.
+    <Pressable onPress={leaveDark} accessibilityRole="button" accessibilityLabel="Dark screen. Tap to come back."
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 11, backgroundColor: colors.black, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 48 }}>
+      <StatusBar hidden />
+      <Text style={{ color: '#161a18', fontSize: 12 }}>Tap to come back</Text>
+    </Pressable>
+  ) : dimmed ? (
+    // Auto-dim while playing: nearly black; any touch brings the screen back (and never stops the sound).
+    <Pressable onPress={armDim} accessibilityRole="button" accessibilityLabel="Screen dimmed. Tap to brighten."
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.9)', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 56 }}>
+      <Text style={{ color: '#2a312d', fontSize: 12 }}>Tap to brighten</Text>
+    </Pressable>
+  ) : null;
+
   return (
-    <Screen>
+    <Screen overlay={dimLayer}>
       <View onTouchStart={armDim} style={{ gap: 18 }}>
         <View style={{ gap: 6, marginTop: 8 }}>
           <Text style={{ color: dim.text, fontFamily: 'Georgia', fontSize: 30 }}>Rest here.</Text>
@@ -218,19 +237,6 @@ export default function QuietRoom() {
         </Text>
       </View>
 
-      {/* Auto-dim while playing: nearly black, any touch brings the screen back. */}
-      <Modal visible={autoDim && playingNow && !dark} transparent animationType="fade" onRequestClose={armDim}>
-        <Pressable onPress={armDim} accessibilityLabel="Screen dimmed. Tap to brighten." style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 56 }}>
-          <Text style={{ color: '#2a312d', fontSize: 12 }}>Tap to brighten</Text>
-        </Pressable>
-      </Modal>
-
-      <Modal visible={dark} animationType="none" transparent={false} onRequestClose={leaveDark} statusBarTranslucent>
-        <StatusBar hidden />
-        <Pressable onPress={leaveDark} accessibilityLabel="Dark screen. Tap to come back." style={{ flex: 1, backgroundColor: colors.black, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 48 }}>
-          <Text style={{ color: '#161a18', fontSize: 12 }}>Tap to come back</Text>
-        </Pressable>
-      </Modal>
     </Screen>
   );
 }

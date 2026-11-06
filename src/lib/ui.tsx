@@ -13,13 +13,14 @@ export const tap = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light
 export const tick = () => { Haptics.selectionAsync().catch(() => {}); };
 export { Ionicons };
 
-export function Screen({ children, scrollRef }: { children: ReactNode; scrollRef?: any }) {
+export function Screen({ children, scrollRef, overlay }: { children: ReactNode; scrollRef?: any; overlay?: ReactNode }) {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
         <ScrollView ref={scrollRef} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>
       </SafeAreaView>
+      {overlay}
     </View>
   );
 }

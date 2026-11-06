@@ -29,6 +29,8 @@ name: Quiet room
 - tapOn:
     text: "Screen dimmed. Tap to brighten."
     optional: true
+# One tap must bring the screen back (the controls are visible again).
+- assertVisible: "This is making it worse"
 - tapOn: "Fade to silence"
 - extendedWaitUntil:
     visible: "Optional: how did that go?"
@@ -39,6 +41,7 @@ name: Quiet room
 - tapOn: "Dark screen"
 - takeScreenshot: 04-dark-screen
 - tapOn: "Dark screen. Tap to come back."
+- assertVisible: "Rest here."
 - extendedWaitUntil:
     visible: "Rest here."
     timeout: 5000
