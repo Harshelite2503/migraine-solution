@@ -72,13 +72,13 @@ export function RecipeCard({ profile, onChange }: Props) {
       ))}
 
       <H2>AI review (optional)</H2>
-      <Muted small>Claude reads a summary of your answers, test results and journal counts (no name, no dates, no notes), compares it with the research above, and may suggest small changes. Your safety limits always win: a review can never make a sound louder or harsher. It is not medical advice.</Muted>
+      <Muted small>An AI model reads a summary of your answers, test results and journal counts (no name, no dates, no notes), compares it with the research above, and may suggest small changes. Your safety limits always win: a review can never make a sound louder or harsher. It is not medical advice.</Muted>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ color: colors.ink, flex: 1 }}>Allow AI review of my sound</Text>
         <Switch value={profile.consentAI} onValueChange={v => onChange({ ...profile, consentAI: v })} />
       </View>
       {aiAvailable
-        ? <Button kind="primary" label={busy ? 'Reviewing…' : 'Ask Claude to review my sound'} onPress={review} disabled={!profile.consentAI || busy} />
+        ? <Button kind="primary" label={busy ? 'Reviewing…' : 'Ask AI to review my sound'} onPress={review} disabled={!profile.consentAI || busy} />
         : <Muted small>AI review is not set up in this build of the app.</Muted>}
       {profile.aiReview?.cautions?.map((c, i) => <Muted key={`c${i}`} small>Note: {c}</Muted>)}
       {profile.aiReview?.questions?.length ? <Muted small>Worth thinking about: {profile.aiReview.questions.join(' ')}</Muted> : null}

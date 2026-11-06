@@ -1,0 +1,41 @@
+# Manual end-to-end check: sends a sample (made-up) profile to the deployed review server and
+# prints the review. Run it from the Actions tab after changing the server or its model keys.
+name: Review check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AZURE_CLIENT_ID: c3c6b1cc-16d8-4144-a2b9-71533348d631
+  AZURE_TENANT_ID: c8f2e123-9b86-471f-b7e8-e8871582d4e4
+  AZURE_SUBSCRIPTION_ID: 4b37c323-30b2-4684-88ff-ba5cdc3467f9
+  AZURE_FUNCTIONAPP_NAME: still-review-fc26d0
+  AZURE_RESOURCE_GROUP: still-review-rg
+
+jobs:
+  check:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Request a review of the sample profile
+        run: |
+          KEY=$(az functionapp keys list -g "$AZURE_RESOURCE_GROUP" -n "$AZURE_FUNCTIONAPP_NAME" --query functionKeys.default -o tsv)
+          echo "::add-mask::$KEY"
+          START=$(date +%s)
+          CODE=$(curl -s -o review.json -w "%{http_code}" --max-time 240 -X POST \
+            -H "x-functions-key: $KEY" -H "Content-Type: application/json" \
+            --data @server/test/fixtures/sample-request.json \
+            "https://$AZURE_FUNCTIONAPP_NAME.azurewebsites.net/api/review")
+          echo "HTTP $CODE in $(( $(date +%s) - START )) s"
+          jq . review.json || cat review.json
+          [ "$CODE" = "200" ]
