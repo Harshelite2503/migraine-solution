@@ -116,7 +116,7 @@ export default function QuietRoom() {
     setPreparing(false);
     const minutes = Number(timer);
     if (minutes) sleep.current = setTimeout(() => { player.stop(60); setTimeout(() => { end({ ask: false }); setPlaying(null); setStatus('Faded to silence. Rest well.'); }, 61000); }, Math.max(0, minutes - 1) * 60000);
-    setStatus(`Fading in over ${r.fadeInS.toFixed(0)} seconds${minutes ? ` · fades out after ${minutes} min` : ''}. Keeps playing with the phone locked.`);
+    setStatus('Fading in. It keeps playing if you lock the phone.');
   };
 
   const stopSound = () => { player.stop(3); setPlaying(null); setPreparing(false); setStatus('Fading to silence.'); end(); };
@@ -199,7 +199,7 @@ export default function QuietRoom() {
           <RoundAction icon="water-outline" label="Softer" sub="Quieter, darker" active={playing === 'softer'} onPress={() => (playing === 'softer' ? stopSound() : playSound('softer'))} />
         </View>
 
-        {playing && <Button kind="warn" label="This is making it worse" icon="hand-left-outline" onPress={worse} />}
+        {playing && <Button kind="quiet" label="This is making it worse" icon="hand-left-outline" onPress={worse} style={{ borderWidth: 1, borderColor: 'rgba(227,155,131,0.22)' }} />}
 
         {/* Quiet settings: two small lines, no counters */}
         <View style={{ gap: 4, alignItems: 'center' }}>
