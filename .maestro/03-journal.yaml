@@ -11,4 +11,5 @@ name: Journal
 - scrollUntilVisible:
     element: "Episodes \\(1\\)"
     direction: DOWN
+    centerElement: true
 - takeScreenshot: 09-journal

@@ -17,15 +17,18 @@ name: Build my sound
 - scrollUntilVisible:
     element: "Choose Rain"
     direction: DOWN
+    centerElement: true
 - tapOn: "Choose Rain"
 - takeScreenshot: 06-quick-start
 - scrollUntilVisible:
     element: "Done"
     direction: DOWN
+    centerElement: true
 - tapOn: "Done"
 - scrollUntilVisible:
     element: "Play A then B"
     direction: DOWN
+    centerElement: true
 - takeScreenshot: 07-tune-by-ear
 - tapOn: "Play A then B"
 # The play button reads "Playing…" while A and B play, then "Play again".
@@ -39,4 +42,5 @@ name: Build my sound
 - scrollUntilVisible:
     element: "Noted. Play the next pair when you are ready."
     direction: DOWN
+    centerElement: true
 - takeScreenshot: 08-after-choice
