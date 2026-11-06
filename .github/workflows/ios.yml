@@ -78,6 +78,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
       - name: Run the app tests
         run: |
+          set -o pipefail
           mkdir -p ios-results
           maestro --device "$UDID" test .maestro --format junit --output ios-results/report.xml --test-output-dir ios-results 2>&1 | tee ios-results/maestro.log
       - name: Collect screenshots

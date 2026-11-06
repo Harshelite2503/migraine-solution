@@ -130,7 +130,7 @@ export default function QuietRoom() {
       {/* The one big control */}
       <View style={{ alignItems: 'center', paddingVertical: 14, gap: 14 }}>
         <Pressable
-          accessibilityRole="button" accessibilityLabel={orbOn ? 'Fade to silence' : 'Play my sound'}
+          accessibilityRole="button" accessibilityLabel={preparing ? 'Getting ready' : orbOn ? 'Fade to silence' : 'Play my sound'}
           onPressIn={tap} onPress={() => (orbOn ? stopSound() : playSound('comfort'))}
           style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.96 : 1 }] })}>
           <View style={{ width: 236, height: 236, borderRadius: 118, borderWidth: 1, borderColor: orbOn ? 'rgba(169,199,155,0.55)' : colors.line, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(169,199,155,0.05)' }}>

@@ -30,7 +30,7 @@ export function Button({ label, onPress, kind = 'outline', disabled, style, icon
   const fg = kind === 'primary' ? colors.bgTop : kind === 'warn' ? colors.warn : colors.ink;
   return (
     <Pressable
-      accessibilityRole="button" accessibilityHint={hint} accessibilityState={{ disabled }} disabled={disabled}
+      accessibilityRole="button" accessibilityLabel={label.replace(/^[^A-Za-z0-9]+/, '')} accessibilityHint={hint} accessibilityState={{ disabled }} disabled={disabled}
       onPressIn={tap} onPress={onPress}
       style={({ pressed }) => [styles.button, kind === 'primary' && styles.primary, kind === 'quiet' && styles.quiet, kind === 'warn' && styles.warnBtn,
         pressed && { transform: [{ scale: 0.97 }], opacity: 0.85 }, disabled && { opacity: 0.38 }, style]}
@@ -47,7 +47,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
       {options.map(o => {
         const on = o.value === value;
         return (
-          <Pressable key={o.value} accessibilityRole="radio" accessibilityState={{ checked: on }} onPressIn={tick} onPress={() => onChange(o.value)}
+          <Pressable key={o.value} accessibilityRole="radio" accessibilityLabel={o.label} accessibilityState={{ checked: on }} onPressIn={tick} onPress={() => onChange(o.value)}
             style={({ pressed }) => [styles.segment, on && styles.segmentOn, pressed && { opacity: 0.8 }]}>
             {o.icon ? <Ionicons name={o.icon} size={16} color={on ? colors.ink : colors.muted} /> : null}
             <Text numberOfLines={1} style={[styles.segmentText, on && { color: colors.ink }]}>{o.label}</Text>

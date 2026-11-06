@@ -43,7 +43,7 @@ export const SCALE_0_4 = ['Not at all', 'A little', 'Some', 'A lot', 'Severely']
 
 export function Chip({ label, on, onPress, role }: { label: string; on: boolean; onPress: () => void; role: 'radio' | 'checkbox' }) {
   return (
-    <Pressable accessibilityRole={role} accessibilityState={{ checked: on }} onPressIn={tick} onPress={onPress}
+    <Pressable accessibilityRole={role} accessibilityLabel={label} accessibilityState={{ checked: on }} onPressIn={tick} onPress={onPress}
       style={({ pressed }) => ({ borderWidth: 1, borderColor: on ? 'rgba(169,199,155,0.6)' : colors.line, backgroundColor: on ? 'rgba(169,199,155,0.14)' : colors.surface, borderRadius: 999, paddingVertical: 9, paddingHorizontal: 13, opacity: pressed ? 0.75 : 1 })}>
       <Text style={{ color: on ? colors.ink : colors.muted, fontSize: 13 }}>{label}</Text>
     </Pressable>

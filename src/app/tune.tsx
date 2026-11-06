@@ -54,7 +54,7 @@ export default function Build() {
 
         {STEPS.map(s => (
           <View key={s.key} style={[styles.card, open === s.key && { borderColor: 'rgba(169,199,155,0.4)' }]}>
-            <Pressable accessibilityRole="button" onPressIn={tap} onPress={() => { player.stop(0.3); setOpen(open === s.key ? null : s.key); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={s.title} accessibilityState={{ expanded: open === s.key }} onPressIn={tap} onPress={() => { player.stop(0.3); setOpen(open === s.key ? null : s.key); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
               <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: done(s.key) ? 'rgba(169,199,155,0.16)' : colors.surfaceStrong }}>
                 <Ionicons name={done(s.key) ? 'checkmark' : s.icon} size={19} color={done(s.key) ? colors.accent : colors.moon} />
               </View>

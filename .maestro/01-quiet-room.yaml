@@ -1,4 +1,4 @@
-# Quiet room: play, stop, check-in, dark screen. Fails if the play button takes over 3 s to respond.
+# Quiet room: play, stop, check-in, dark screen. Fails if the sound takes over 3 s to start.
 appId: com.stillsoundlab.still
 name: Quiet room
 ---
@@ -13,8 +13,9 @@ name: Quiet room
 - swipe: { direction: UP, duration: 400 }
 - swipe: { direction: DOWN, duration: 400 }
 - tapOn: "Play my sound"
+# The play control's label is "Getting ready" until the sound has started.
 - extendedWaitUntil:
-    visible: "Playing"
+    visible: "Fade to silence"
     timeout: 3000
 - takeScreenshot: 02-playing
 # Let it play for a few seconds (sessions under 3 s are not recorded).
