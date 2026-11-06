@@ -39,7 +39,8 @@ npx expo run:ios       # needs a Mac with Xcode
 
 ## Builds
 
-- **Android on Azure:** `scripts/azure-android-build.sh`. It creates a temporary Ubuntu VM in your Azure subscription, builds a release APK (arm64 phones), uploads it to a private storage account, prints a 7-day download link, and deletes the VM. It needs `az login`. The VM costs roughly $0.40 an hour on `Standard_D8s_v5` for about 30 minutes; the stored APK costs pennies a month. The APK is signed with the debug key, which is fine for testing but not for the Play Store.
+- **Android, free:** the "Android build" GitHub Actions workflow builds a release APK on every app change. GitHub runners are free for public repositories. Download it from the run as `Still-android`.
+- **Android on Azure:** `scripts/azure-android-build.sh`. It uses a Spot VM first (about $0.07/h, so roughly 1–2 cents a build) and falls back to a regular VM. It creates a temporary Ubuntu VM in your Azure subscription, builds a release APK (arm64 phones), uploads it to a private storage account, prints a 7-day download link, and deletes the VM. It needs `az login`. The VM costs roughly $0.40 an hour on `Standard_D8s_v5` for about 30 minutes; the stored APK costs pennies a month. The APK is signed with the debug key, which is fine for testing but not for the Play Store.
 - **iOS on GitHub Actions:** `.github/workflows/ios.yml` runs the tests and typecheck, then builds an iOS Simulator app on macOS and attaches it to the run as `Still-ios-simulator`. To install on real iPhones (TestFlight), add an Apple Developer account ($99 a year) and signing secrets. That step is not set up yet.
 
 ## Project layout

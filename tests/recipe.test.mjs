@@ -34,6 +34,11 @@ assert.ok(measured.why.some(w => w.param === 'tiltDbPerOct' && w.source === 'mea
 const learned = buildRecipe({ ...empty, tests: { tilt: { value: -3.2, trials: 5 } } }, 'normal', { learned: [0.1, 0.2, 0, 0.5], learnedRounds: 6 });
 assert.ok(Math.abs(learned.recipe.tiltDbPerOct - settingsFromX([0.1, 0.2, 0, 0.5]).tiltDbPerOct) < 1e-9);
 
+// A disliked category vetoes a measured value.
+const vetoHum = buildRecipe({ ...empty, intake: { dislikes: ['hum'] }, tests: { tonal: { value: 0.05, trials: 4 } } }, 'normal');
+assert.equal(vetoHum.recipe.tonal, 0);
+assert.ok(vetoHum.why.some(w => w.param === 'tonal' && w.source === 'rule'));
+
 // Round trip between recipe settings and the learner space.
 const s = { tiltDbPerOct: -6.1, tonal: 0.3, swellDb: 1.2, cutoffHz: 1800 };
 const back = settingsFromX(xFromSettings(s));

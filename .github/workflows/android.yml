@@ -1,0 +1,41 @@
+# Free Android build on GitHub's runners (free for public repositories). Produces a release APK
+# for 64-bit phones, attached to the run as "Still-android". Signed with a test key, so uninstall
+# the previous build before installing a new one.
+name: Android build
+
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'app.json', 'package.json', 'package-lock.json', 'assets/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPO_PUBLIC_RECIPE_API_URL: ${{ vars.RECIPE_API_URL }}
+      EXPO_PUBLIC_RECIPE_API_KEY: ${{ secrets.RECIPE_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: npm ci
+      - run: npm test
+      - name: Generate the native Android project
+        run: npx expo prebuild --platform android --no-install
+        env: { CI: 1 }
+      - name: Build the release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Still-android
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 14

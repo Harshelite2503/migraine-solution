@@ -95,6 +95,12 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
     note('tonal', tonal, 'default', 'Mostly soft noise with a faint hum underneath.', ['aras']);
   }
 
+  // A category you can't stand always wins, even over a test result (a veto, not a preference).
+  if (has(intake.dislikes, 'hum') && tonal > 0) {
+    tonal = 0;
+    note('tonal', 0, 'rule', 'No hum at all, because you said you can\'t stand hums or drones.', []);
+  }
+
   // ---- Hum pitch and harmonics ----
   let humHz;
   if (Number.isFinite(tests.humHz?.value)) {

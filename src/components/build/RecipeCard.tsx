@@ -37,7 +37,7 @@ export function RecipeCard({ profile, onChange }: Props) {
 
   const listen = async () => { const uri = await player.recipeFile(r); await player.play(uri, { levelDb: r.levelDb, fadeIn: r.fadeInS, title: 'My sound' }); };
   const review = async () => {
-    setBusy(true); setNote('Asking for a review. This can take up to a minute…');
+    setBusy(true); setNote('Asking for a review. This usually takes 1–2 minutes…');
     try {
       const ai = await requestReview(profile, await loadJournal());
       onChange({ ...profile, aiReview: ai });

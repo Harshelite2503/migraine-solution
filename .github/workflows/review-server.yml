@@ -2,7 +2,8 @@
 # Signs in to Azure with GitHub's short-lived OIDC token; no Azure password is stored.
 # Inactive until these repository variables exist: AZURE_CLIENT_ID, AZURE_TENANT_ID,
 # AZURE_SUBSCRIPTION_ID, AZURE_FUNCTIONAPP_NAME, AZURE_RESOURCE_GROUP (see server/README.md).
-# Optional secret ANTHROPIC_API_KEY is copied into the Function App's settings.
+# Secrets copied into the Function App's settings: OPENROUTER_API_KEY (free models, used first) and,
+# optionally, ANTHROPIC_API_KEY (paid Claude, used only when there is no OpenRouter key).
 name: Review server
 
 on:
@@ -48,12 +49,17 @@ jobs:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Store the Anthropic API key in the Function App
-        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
-        if: env.ANTHROPIC_API_KEY != ''
+      - name: Store model API keys in the Function App
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          az functionapp config appsettings set -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_FUNCTIONAPP_NAME }}" \
-            --settings "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" -o none
+          SETTINGS=()
+          [ -n "$OPENROUTER_API_KEY" ] && SETTINGS+=("OPENROUTER_API_KEY=$OPENROUTER_API_KEY")
+          [ -n "$ANTHROPIC_API_KEY" ] && SETTINGS+=("ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+          if [ ${#SETTINGS[@]} -gt 0 ]; then
+            az functionapp config appsettings set -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_FUNCTIONAPP_NAME }}" --settings "${SETTINGS[@]}" -o none
+          fi
       - uses: Azure/functions-action@v1
         with:
           app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}

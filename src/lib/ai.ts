@@ -16,7 +16,7 @@ export function reviewPayload(profile: Profile, journal: Journal) {
 export async function requestReview(profile: Profile, journal: Journal): Promise<AiReview> {
   if (!aiAvailable) throw new Error('not-configured');
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 120000);
+  const timer = setTimeout(() => controller.abort(), 180000); // free models take ~1–2 minutes
   try {
     const res = await fetch(URL, {
       method: 'POST', signal: controller.signal,

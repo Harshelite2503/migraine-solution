@@ -1,6 +1,6 @@
 // Review server logic with a fake model: request shape, validation, and failure handling.
 import assert from 'node:assert/strict';
-import { reviewRecipe, validateRequest, SYSTEM_PROMPT, MODEL, type CreateFn } from '../src/reviewer.js';
+import { reviewRecipe, validateRequest, anthropicModel, openRouterModel, FREE_MODELS, ProviderError, SYSTEM_PROMPT, MODEL, type CreateFn } from '../src/reviewer.js';
 import { buildReviewRequest, REVIEW_SCHEMA } from '../../src/recipe/review.js';
 import { buildRecipe } from '../../src/recipe/recipe.js';
 
@@ -19,7 +19,7 @@ const good: CreateFn = async p => {
     cautions: [], questions: ['Do you usually listen lying down?'],
   }));
 };
-const out = await reviewRecipe(good, request);
+const out = await reviewRecipe(anthropicModel(good), request);
 assert.equal(sent.model, 'claude-opus-5-5');
 assert.equal(sent.fallbacks, 'default');
 assert.deepEqual(sent.betas, ['server-side-fallback-2026-07-01']);
@@ -40,15 +40,35 @@ assert.deepEqual(out.rationale[0].evidence, ['kumar2008']);
 assert.equal(out.questions.length, 1);
 
 // 3. Refusal → no changes, a caution. Truncation and junk → errors.
-const refused = await reviewRecipe(async () => reply('', 'refusal'), request);
+const refused = await reviewRecipe(anthropicModel(async () => reply('', 'refusal')), request);
 assert.deepEqual(refused.adjustments, {});
 assert.equal(refused.cautions.length, 1);
-await assert.rejects(reviewRecipe(async () => reply('{"adj', 'max_tokens'), request));
-await assert.rejects(reviewRecipe(async () => reply('not json'), request));
+await assert.rejects(reviewRecipe(anthropicModel(async () => reply('{"adj', 'max_tokens')), request));
+await assert.rejects(reviewRecipe(anthropicModel(async () => reply('not json')), request));
 
 // 4. Request validation: unknown fields stripped, junk and oversized bodies rejected.
 assert.equal('secret' in validateRequest({ recipes: {}, secret: 'x' }), false);
 assert.throws(() => validateRequest(null));
 assert.throws(() => validateRequest({ intake: {} }));
 assert.throws(() => validateRequest({ recipes: {}, intake: { pad: 'x'.repeat(30000) } }));
+// 5. OpenRouter: free models in order, schema enforced, key in the header, errors typed.
+let orReq: any = null;
+const orFetch = (status: number, body: unknown) => (async (url: any, init: any) => {
+  orReq = { url, init, body: JSON.parse(init.body) };
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}) as typeof fetch;
+const okBody = { choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ adjustments: { width: 0.2 }, rationale: [], cautions: [], questions: [] }) } }] };
+const orOut = await reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(200, okBody) }), request);
+assert.equal(orOut.adjustments.width, 0.2);
+assert.equal(orReq.url, 'https://openrouter.ai/api/v1/chat/completions');
+assert.equal(orReq.init.headers.Authorization, 'Bearer k');
+assert.deepEqual(orReq.body.models, FREE_MODELS);
+assert.ok(FREE_MODELS.every(m => m.endsWith(':free')), 'default models are free');
+assert.equal(orReq.body.response_format.json_schema.strict, true);
+assert.deepEqual(orReq.body.response_format.json_schema.schema, REVIEW_SCHEMA);
+assert.equal(orReq.body.provider.require_parameters, true);
+assert.equal(orReq.body.messages[0].content, SYSTEM_PROMPT);
+await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(200, { choices: [{ finish_reason: 'length', message: { content: '{' } }] }) }), request));
+await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(429, { error: { code: 429, message: 'rate limited' } }) }), request),
+  (e: unknown) => e instanceof ProviderError && e.status === 429);
 console.log('server ok');
