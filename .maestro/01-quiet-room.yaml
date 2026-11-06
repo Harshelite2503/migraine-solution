@@ -5,7 +5,7 @@ name: Quiet room
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "How is your head?"
+    visible: "Rest here."
     timeout: 20000
 - takeScreenshot: 01-quiet-room
 - waitForAnimationToEnd
@@ -37,5 +37,5 @@ name: Quiet room
 - takeScreenshot: 04-dark-screen
 - tapOn: "Dark screen. Tap to come back."
 - extendedWaitUntil:
-    visible: "How is your head?"
+    visible: "Rest here."
     timeout: 5000

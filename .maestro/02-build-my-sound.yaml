@@ -1,4 +1,4 @@
-# Build my sound: questionnaire answers save, a listening test plays a pair and accepts a choice.
+# My sound: the 30-second quick start saves, then "Tune it by ear" plays a pair and accepts a choice.
 appId: com.stillsoundlab.still
 name: Build my sound
 ---
@@ -6,23 +6,20 @@ name: Build my sound
 - tapOn:
     id: "tab-sound"
 - extendedWaitUntil:
-    visible: "Build my sound"
+    visible: "Make it yours"
     timeout: 10000
-- takeScreenshot: 05-build-my-sound
-- tapOn: "About your headaches"
-- tapOn: "Usually"
-- tapOn: "The pain"
-- tapOn: "No"
-- takeScreenshot: 06-questions
-- tapOn: "About your headaches"
-- scrollUntilVisible:
-    element: "Six focused listening tests"
-    direction: DOWN
-- tapOn: "Six focused listening tests"
+- takeScreenshot: 05-my-sound
+# Quick start opens by default for a new person.
+- tapOn: "A lot"
+- tapOn: "Hiss, high sounds"
+- tapOn: "Yes"
+- tapOn: "Earbuds"
+- takeScreenshot: 06-quick-start
+- tapOn: "Done"
 - scrollUntilVisible:
     element: "Play A then B"
     direction: DOWN
-- takeScreenshot: 07-listening-test
+- takeScreenshot: 07-tune-by-ear
 - tapOn: "Play A then B"
 # The play button reads "Playing…" while A and B play, then "Play again".
 - extendedWaitUntil:

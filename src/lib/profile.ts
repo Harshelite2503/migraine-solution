@@ -151,6 +151,7 @@ export function recipeFor(profile: Profile, state: AnyState) {
 export function progress(profile: Profile) {
   const i = profile.intake;
   const steps = {
+    quick: i.attackSoundBother !== undefined && i.bother?.high !== undefined && i.bother?.sudden !== undefined && !!i.listening,
     about: !!(i.attackSoundBother !== undefined && i.worstSymptom && i.listening),
     sensitivities: Object.keys(i.bother || {}).length >= 5,
     likes: !!((i.loves?.length || 0) + (i.dislikes?.length || 0)),

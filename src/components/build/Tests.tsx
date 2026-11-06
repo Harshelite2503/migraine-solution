@@ -9,7 +9,7 @@ import * as player from '../../lib/player';
 import { Button, Muted } from '../../lib/ui';
 import { colors } from '../../lib/theme';
 
-type Props = { profile: Profile; onChange: (p: Profile) => void };
+type Props = { profile: Profile; onChange: (p: Profile) => void; keys?: string[] };
 type Stair = ReturnType<typeof startStaircase>;
 const CLIP_MS = 6000;
 
@@ -17,8 +17,9 @@ const fmt = (key: string, v: number) =>
   key === 'tilt' ? `${v.toFixed(1)} dB/octave` : key === 'cutoff' || key === 'humHz' ? `${v.toFixed(key === 'humHz' ? 1 : 0)} Hz`
     : key === 'swellDb' ? `${v.toFixed(1)} dB` : `${Math.round(v * 100)}%`;
 
-export function Tests({ profile, onChange }: Props) {
-  const pending = TESTS.filter(t => !(profile.tests as any)[t.key] && !t.skipIf?.(profile.tests, profile.intake));
+export function Tests({ profile, onChange, keys }: Props) {
+  const set = keys ? TESTS.filter(t => keys.includes(t.key)) : TESTS;
+  const pending = set.filter(t => !(profile.tests as any)[t.key] && !t.skipIf?.(profile.tests, profile.intake));
   const test = pending[0];
   const [stair, setStair] = useState<Stair | null>(test ? startStaircase(test) : null);
   const [flip, setFlip] = useState(false);       // whether A is the higher value this round
@@ -38,7 +39,7 @@ export function Tests({ profile, onChange }: Props) {
   }, [test?.key, stair?.trials]);
 
   if (!test || !stair) {
-    return <Muted>All listening tests are done. Your results are in your recipe below. You can redo any test by resetting it there.</Muted>;
+    return <Muted>Done. Your sound now uses what you chose. You can redo these any time.</Muted>;
   }
 
   const variant = (value: number) => {
@@ -87,7 +88,7 @@ export function Tests({ profile, onChange }: Props) {
 
   return (
     <View style={{ gap: 10 }}>
-      <Muted small>Test {TESTS.indexOf(test) + 1} of {TESTS.length} · round {stair.trials + 1} of {test.rounds}. Use headphones if you can.</Muted>
+      <Muted small>Test {set.indexOf(test) + 1} of {set.length} · round {stair.trials + 1} of {test.rounds}. Use headphones if you can.</Muted>
       <Text style={{ color: colors.ink, fontSize: 18 }}>{test.title}</Text>
       <Muted>Two versions play, A then B. Only one quality changes. Pick the one that feels calmer.</Muted>
       <View style={{ flexDirection: 'row', gap: 8 }}>
