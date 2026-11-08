@@ -95,7 +95,7 @@ jobs:
           path: ios-results
           retention-days: 14
       - name: Publish results to the ios-test-results branch
-        if: always() && github.ref == 'refs/heads/main'
+        if: always() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
         run: |
           cd ios-results
           git init -q && git checkout -q -b ios-test-results
