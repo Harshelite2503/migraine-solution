@@ -114,3 +114,18 @@ import('../src/recipe/review.js').then(({ buildReviewRequest }) => {
   assert.ok(sent.includes('"soundBother":{"high":2}'));
   console.log('recipe ok');
 });
+
+// Comfort study 2026: no hum unless asked for; soft rain when no texture is picked.
+{
+  const d = buildRecipe(empty, 'attack');
+  assert.equal(d.recipe.tonal, 0);
+  assert.equal(d.recipe.texture, 'rain');
+  assert.ok(d.why.some(w => w.param === 'tonal' && w.evidence.includes('stillLab2026')));
+  assert.equal(buildRecipe({ ...empty, intake: { loves: ['hum'] } }, 'normal').recipe.tonal, 0.5);
+  assert.equal(buildRecipe({ ...empty, intake: { loves: ['hum'], bother: { low: 4 } } }, 'normal').recipe.tonal, 0);
+  assert.equal(buildRecipe({ ...empty, intake: { texture: 'none' } }, 'attack').recipe.texture, 'none');
+  assert.equal(buildRecipe({ ...empty, intake: { dislikes: ['rain'] } }, 'attack').recipe.texture, 'none');
+  assert.equal(buildRecipe({ ...empty, intake: { loves: ['fan'] } }, 'attack').recipe.texture, 'fan');
+  for (const w of d.why) for (const e of w.evidence) assert.ok(EVIDENCE[e], e);
+}
+console.log('comfort-study defaults ok');

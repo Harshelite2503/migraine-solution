@@ -9,7 +9,7 @@ export const TESTS = [
     describe: v => (v <= -7 ? 'deeper and darker' : v <= -4.5 ? 'warmer' : 'brighter, more airy') },
   { key: 'cutoff', title: 'How soft the top end is', question: 'Which feels calmer?', scale: 'log', range: [400, 6000], start: 1600, step: 2, rounds: 5, unit: 'Hz',
     describe: v => (v < 900 ? 'very muffled' : v < 2500 ? 'softened' : 'open and clear') },
-  { key: 'tonal', title: 'Noise or hum', question: 'Which texture feels calmer?', scale: 'linear', range: [0, 1], start: 0.4, step: 0.3, rounds: 4, unit: '',
+  { key: 'tonal', title: 'Noise or hum', question: 'Which texture feels calmer?', scale: 'linear', range: [0, 1], start: 0.2, step: 0.3, rounds: 4, unit: '',
     describe: v => (v < 0.2 ? 'more like soft rain' : v < 0.6 ? 'a blend' : 'more like a steady hum') },
   { key: 'humHz', title: 'Hum pitch', question: 'Which hum pitch feels calmer?', scale: 'log', range: [65, 300], start: 140, step: 1.6, rounds: 5, unit: 'Hz',
     describe: v => (v < 100 ? 'deeper' : v < 180 ? 'mid' : 'higher'), skipIf: tests => Number.isFinite(tests.tonal?.value) && tests.tonal.value < 0.1 },

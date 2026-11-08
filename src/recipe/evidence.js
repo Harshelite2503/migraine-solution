@@ -93,6 +93,11 @@ export const EVIDENCE = {
     citation: 'Ooi et al. 2023 (ARAUS); Still strategy review',
     strength: 'moderate',
   },
+  stillLab2026: {
+    finding: 'Scored against 287 natural sounds rated by 685 people, at equal loudness, soft rain was the most comfortable of Still\'s sounds and adding a steady hum made any sound clearly less pleasant.',
+    citation: 'Still comfort study 2026 (ARAUS ratings, Wav2Vec-BERT and TRIBE v2 models)',
+    strength: 'weak',
+  },
   personal: {
     finding: 'Measured from your own choices in Still.',
     citation: 'Your listening tests',

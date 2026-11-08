@@ -85,14 +85,15 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
     tonal = tests.tonal.value;
     note('tonal', tonal, 'measured', 'Balance of soft noise and steady hum, from your texture test.', ['personal']);
   } else if (has(intake.dislikes, 'hum') || n04(bother.low) >= 3) {
-    tonal = 0.02;
-    note('tonal', tonal, 'estimated', 'You dislike hums or low rumble, so this is almost pure soft noise.', ['ichd3']);
+    tonal = 0;
+    note('tonal', tonal, 'estimated', 'You dislike hums or low rumble, so this is pure soft noise.', ['ichd3']);
   } else if (has(intake.loves, 'hum') || has(intake.loves, 'bowls')) {
     tonal = 0.5;
     note('tonal', tonal, 'estimated', 'You like hums and bowls, so half the sound is a steady hum.', ['aras']);
   } else {
-    tonal = 0.15;
-    note('tonal', tonal, 'default', 'Mostly soft noise with a faint hum underneath.', ['aras']);
+    // No hum unless you ask for it: in our comfort test, adding a hum made the sound less pleasant.
+    tonal = 0;
+    note('tonal', tonal, 'default', 'Pure soft noise, no hum. A hum made the sound less pleasant in our comfort tests; you can add one in the noise-or-hum test.', ['stillLab2026']);
   }
 
   // A category you can't stand always wins, even over a test result (a veto, not a preference).
@@ -161,6 +162,11 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
   } else {
     texture = ['rain', 'ocean', 'fan'].find(t => TEXTURE_LOVES[t].some(c => has(intake.loves, c)) && !hates(t)) || 'none';
     if (texture !== 'none') note('texture', texture, 'estimated', `A ${texture} texture, because you said you find it soothing.`, ['buxton2021', 'arausWater']);
+    else if (!hates('rain')) {
+      // Nothing picked yet: soft rain, the most comfortable of Still's sounds in our tests.
+      texture = 'rain';
+      note('texture', texture, 'default', 'Soft rain, which scored as the most comfortable of Still\'s sounds. Pick another texture any time.', ['stillLab2026', 'buxton2021']);
+    }
   }
   // Softer in harder states; rain droplets softer still if sudden sounds bother you.
   let textureAmount = state === 'attack' ? 0.35 : state === 'normal' ? 0.6 : 0.45;

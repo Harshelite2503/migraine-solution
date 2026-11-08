@@ -9,8 +9,8 @@ import { Ionicons, tap } from '../../lib/ui';
 import { Pick } from './Choices';
 
 type Texture = NonNullable<Intake['texture']>;
-const TEXTURES: { value: Texture; label: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
-  { value: 'rain', label: 'Rain', icon: 'rainy-outline' },
+const TEXTURES: { value: Texture; label: string; note?: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
+  { value: 'rain', label: 'Rain', note: 'Calmest in our tests', icon: 'rainy-outline' },
   { value: 'ocean', label: 'Ocean', icon: 'water-outline' },
   { value: 'fan', label: 'Fan', icon: 'sync-outline' },
   { value: 'none', label: 'Plain hush', icon: 'remove-outline' },
@@ -39,7 +39,10 @@ function TexturePick({ profile, onChange }: { profile: Profile; onChange: (p: Pr
             <View key={t.value} style={{ flexBasis: '47%', flexGrow: 1, borderRadius: 16, borderWidth: 1, borderColor: on ? 'rgba(169,199,155,0.6)' : colors.line, backgroundColor: on ? 'rgba(169,199,155,0.12)' : colors.surface, padding: 12, gap: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Ionicons name={t.icon} size={18} color={colors.moon} />
-                <Text style={{ color: colors.ink, fontSize: 15, flex: 1 }}>{t.label}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.ink, fontSize: 15 }}>{t.label}</Text>
+                  {t.note && <Text style={{ color: colors.muted, fontSize: 11 }}>{t.note}</Text>}
+                </View>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <Pressable accessibilityRole="button" accessibilityLabel={`${hearing === t.value ? 'Stop' : 'Listen to'} ${t.label}`} onPressIn={tap} onPress={() => preview(t.value)}
