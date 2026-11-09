@@ -20,6 +20,7 @@ type Deck = {
   xfadeStart: number | null;
   rise: Rise | null;            // comfort-contour test: level rising steadily in dB
   timer: ReturnType<typeof setInterval> | null;
+  nextCheck: number;            // when to read the play position next (rarely, until near the end)
 };
 
 let deck: Deck | null = null;
@@ -32,7 +33,16 @@ async function ensureAudioMode() {
   modeReady = true;
 }
 
-function setVolume(p: AudioPlayer, v: number) { try { p.volume = Math.max(0, Math.min(1, v)); } catch {} }
+// Only talk to the native player when the volume really changes: between fades nothing is sent,
+// which keeps the phone's main thread (and battery) quiet.
+const lastVolume = new WeakMap<AudioPlayer, number>();
+function setVolume(p: AudioPlayer, v: number) {
+  const x = Math.max(0, Math.min(1, v));
+  const prev = lastVolume.get(p);
+  if (prev !== undefined && Math.abs(prev - x) < 0.0005) return;
+  lastVolume.set(p, x);
+  try { p.volume = x; } catch {}
+}
 
 function tick(d: Deck) {
   const now = Date.now();
@@ -45,21 +55,28 @@ function tick(d: Deck) {
   const [cur, next] = d.players;
   const v = d.level * d.target;
   if (!next) { setVolume(cur, v); return; }
-  // Start the crossfade just before the audible copy reaches its end.
-  const dur = cur.duration, pos = cur.currentTime;
-  if (d.xfadeStart === null && dur > 4 * XFADE_S && pos >= dur - XFADE_S - 0.1) {
-    try { next.seekTo(0); } catch {}
-    d.xfadeStart = now;
+  // Start the crossfade just before the audible copy reaches its end. The position is read about
+  // once a second, and every tick only in the last few seconds.
+  if (d.xfadeStart === null && now >= d.nextCheck) {
+    let dur = 0, pos = 0;
+    try { dur = cur.duration; pos = cur.currentTime; } catch {}
+    const left = dur - pos;
+    if (dur > 4 * XFADE_S && left <= XFADE_S + 0.1) {
+      try { next.seekTo(0); } catch {}
+      d.xfadeStart = now;
+    } else {
+      d.nextCheck = now + (dur > 0 && left < XFADE_S + 3 ? 0 : 1000);
+    }
   }
   if (d.xfadeStart === null) { setVolume(cur, v); setVolume(next, 0); return; }
   const k = Math.min(1, (now - d.xfadeStart) / (XFADE_S * 1000));
   setVolume(cur, v * Math.cos((k * Math.PI) / 2));
   setVolume(next, v * Math.sin((k * Math.PI) / 2));
-  if (k >= 1) { d.players = [next, cur]; d.xfadeStart = null; setVolume(cur, 0); }
+  if (k >= 1) { d.players = [next, cur]; d.xfadeStart = null; d.nextCheck = now + 1000; setVolume(cur, 0); }
 }
 
 function startDeck(players: AudioPlayer[], target: number, fadeInS: number, rise: Rise | null = null): Deck {
-  const d: Deck = { players, target, level: fadeInS > 0 ? 0 : 1, ramp: null, xfadeStart: null, rise, timer: null };
+  const d: Deck = { players, target, level: fadeInS > 0 ? 0 : 1, ramp: null, xfadeStart: null, rise, timer: null, nextCheck: 0 };
   if (fadeInS > 0) d.ramp = { from: 0, to: 1, start: Date.now(), ms: fadeInS * 1000 };
   for (const p of players) { setVolume(p, 0); p.play(); }
   tick(d);
