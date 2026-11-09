@@ -80,9 +80,9 @@ export default function JournalScreen() {
           <Heading>Headache without Still?</Heading>
           <Body color={colors.ink2}>One tap, no details.</Body>
           <View style={styles.chips}>
-            <Chip label="Today" onPress={() => addMissed(0)} style={styles.chip} />
-            <Chip label="Yesterday" onPress={() => addMissed(1)} style={styles.chip} />
-            <Chip label="2 days ago" onPress={() => addMissed(2)} style={styles.chip} />
+            <Chip fit label="Today" onPress={() => addMissed(0)} style={styles.chip} />
+            <Chip fit label="Yesterday" onPress={() => addMissed(1)} style={styles.chip} />
+            <Chip fit label="2 days ago" onPress={() => addMissed(2)} style={styles.chip} />
           </View>
         </Card>
         <Status>{note}</Status>
@@ -100,5 +100,5 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chips: { flexDirection: 'row', gap: 8, marginTop: 6 },
   // Three across on a 375 pt phone; the labels wrap inside the chip under large type.
-  chip: { flex: 1, paddingHorizontal: 12 },
+  chip: { flex: 1, paddingHorizontal: 8 },
 });

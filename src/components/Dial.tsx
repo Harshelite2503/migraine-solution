@@ -1,7 +1,8 @@
 // A rotary knob with click-stops, like the ones on a synth. Drag up or right to turn it up, down or
 // left to turn it down; the indicator follows the finger 1:1 and clicks at each stop. A tap steps to
 // the next setting. On release it springs onto the stop with the finger's own momentum. Screen readers
-// adjust it with increment/decrement, and arrow keys do the same on the web.
+// adjust it with increment/decrement, and arrow keys do the same on the web. The ‹ › buttons beside
+// the name turn it one stop either way with a single tap, for anyone who would rather not drag.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -9,7 +10,7 @@ import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring
 import { scheduleOnRN } from 'react-native-worklets';
 import { colors } from '../lib/theme';
 import { ease, rubberband, spring, timing, useReducedMotion } from '../lib/motion';
-import { Control, Eyebrow, Label, tick, useMaterial } from '../lib/ui';
+import { Control, Eyebrow, Ionicons, Label, Press, tick, useMaterial, useScrollLock } from '../lib/ui';
 
 const SWEEP = 270;           // degrees from the first stop to the last
 const PX_PER_STOP = 26;      // how far to drag for one click
@@ -44,6 +45,11 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
   const crossed = useCallback((i: number) => { tick(); handlers.current.onChange(i); }, []);
   const released = useCallback((i: number) => { handlers.current.onRelease?.(i); }, []);
   const tapped = useCallback((i: number) => { tick(); handlers.current.onChange(i); handlers.current.onRelease?.(i); }, []);
+  // While the knob is being turned the page under it holds still (native ScrollView would otherwise steal the drag).
+  const lockScroll = useScrollLock();
+  const lockRef = useRef(lockScroll);
+  lockRef.current = lockScroll;
+  const lock = useCallback((on: boolean) => { lockRef.current(on); }, []);
 
   // A value from outside (a reload, a screen reader step) turns the knob. A value the gesture just set is already there.
   const lastN = useRef(n);
@@ -72,6 +78,7 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
       .onStart(() => {
         cancelAnimation(angle);
         dragging.set(true);
+        scheduleOnRN(lock, true);
         start.set(current.get());
       })
       .onUpdate(e => {
@@ -90,6 +97,7 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
         scheduleOnRN(released, current.get());
       })
       .onFinalize(() => {
+        scheduleOnRN(lock, false);
         cancelAnimation(squeeze);
         squeeze.set(reduced ? withTiming(1, { duration: timing.reduced, easing: ease.enter }) : withSpring(1, spring.press));
       });
@@ -109,7 +117,7 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
       });
 
     return Gesture.Exclusive(pan, tap);
-  }, [disabled, n, per, reduced, angleOf, angle, current, start, dragging, squeeze, crossed, released, tapped]);
+  }, [disabled, n, per, reduced, angleOf, angle, current, start, dragging, squeeze, crossed, released, tapped, lock]);
 
   // Screen-reader actions and arrow keys: one stop at a time, clamped at the ends (no wrap). Returns
   // whether the knob moved. A screen-reader step is a whole gesture, so it releases at once.
@@ -202,15 +210,29 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
             ]}>
             <View pointerEvents="none" style={[s.inner, { width: inner, height: inner, borderRadius: inner / 2 }]} />
             <Animated.View pointerEvents="none" style={[s.spinner, { width: size, height: size }, indicator]}>
-              <View style={[s.indicator, { left: size / 2 - 2, height: size * 0.2 }]} />
+              <View style={[s.indicator, { left: size / 2 - 4 }]} />
             </Animated.View>
             <Word color={colors.ink} center numberOfLines={1} maxFontSizeMultiplier={1.4} style={s.word}>{stops[value]}</Word>
           </Animated.View>
         </GestureDetector>
       </View>
-      {/* The knob already carries this name; read once, not twice. */}
-      <Eyebrow accessibilityElementsHidden importantForAccessibility="no" aria-hidden>{label}</Eyebrow>
+      {/* Step buttons: a one-tap way to turn the dial either way, without dragging. The knob already carries
+          the name, so the name between them is read once, not twice. */}
+      <View style={s.steps}>
+        <StepButton icon="chevron-back" label={`${label} down`} enabled={!disabled && value > 0} onPress={() => step(value - 1)} />
+        <Eyebrow accessibilityElementsHidden importantForAccessibility="no" aria-hidden style={s.name}>{label}</Eyebrow>
+        <StepButton icon="chevron-forward" label={`${label} up`} enabled={!disabled && value < n - 1} onPress={() => step(value + 1)} />
+      </View>
     </View>
+  );
+}
+
+function StepButton({ icon, label, enabled, onPress }: { icon: 'chevron-back' | 'chevron-forward'; label: string; enabled: boolean; onPress: () => void }) {
+  return (
+    <Press accessibilityRole="button" accessibilityLabel={label} disabled={!enabled} haptic={false} onPress={onPress}
+      style={[s.step, !enabled && s.stepOff]}>
+      <Ionicons name={icon} size={18} color={colors.ink2} />
+    </Press>
   );
 }
 
@@ -224,6 +246,11 @@ const s = StyleSheet.create({
   knob: { backgroundColor: colors.smoke, borderWidth: 1, borderColor: colors.hairline, alignItems: 'center', justifyContent: 'center' },
   inner: { position: 'absolute', borderWidth: 1, borderColor: colors.hairline },
   spinner: { position: 'absolute' },
-  indicator: { position: 'absolute', top: 10, width: 4, borderRadius: 2, backgroundColor: colors.lamp },
+  // A dot at the rim, not a bar: a bar reached down over the stop name on the smaller dials.
+  indicator: { position: 'absolute', top: 7, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.lamp },
   word: { paddingHorizontal: 12 },
+  steps: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  name: { minWidth: 56, textAlign: 'center' },
+  step: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  stepOff: { opacity: 0.25 },
 });

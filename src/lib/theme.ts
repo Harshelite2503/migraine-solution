@@ -28,7 +28,7 @@ export const colors = {
   // text
   ink: '#E7E2D8',          // 12.9:1 to 15.1:1 on every surface
   ink2: '#A8A399',         // 6.6:1 to 7.7:1; body-eligible
-  ink3: '#75716A',         // 3.4:1 to 4.0:1; captions, disclaimers, disabled ONLY, never body
+  ink3: '#8A857C',         // 4.9:1 to 5.3:1: the dimmest text that still reads clearly (4.5:1 floor, as in the design audit); captions, disclaimers, disabled
   // the single accent
   lamp: '#C29A62',         // 6.4:1 to 7.5:1 as text; the only filled bright surface
   lampDeep: '#7A6140',     // tracks, selected borders, arc at rest (decoration only, 3.1:1)

@@ -1,7 +1,7 @@
 // Shared primitives. One material (smoke), one accent (the lamp), two type families. Every pressable
 // answers on touch-down with a light haptic and a 0.97 scale, before any slow work starts, so the app
 // always feels like it heard you. Brightness never springs; small text cross-fades.
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import {
   Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View,
   type AccessibilityRole, type LayoutChangeEvent, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle,
@@ -363,8 +363,10 @@ export function Segmented<T extends string>({ options, value, onChange, label }:
 // ---------------------------------------------------------------------------------------------
 // Chip: a 48 pt material pill-ish button (radius 14). `on` gives the selected look.
 
-export function Chip({ label, onPress, on, icon, disabled, style, hint, accessibilityRole = 'button', testID }: {
+export function Chip({ label, onPress, on, icon, disabled, style, hint, accessibilityRole = 'button', testID, fit }: {
   label: string; onPress: () => void; on?: boolean; icon?: IconName; disabled?: boolean; style?: StyleProp<ViewStyle>; hint?: string;
+  /** Keep the label on one line in a tight row: it shrinks a little on phones, and is set a size down on the web. */
+  fit?: boolean;
   /** `radio` for a pick-one group (the check-in chips); the state then carries `checked`. */
   accessibilityRole?: 'button' | 'radio'; testID?: string;
 }) {
@@ -376,7 +378,8 @@ export function Chip({ label, onPress, on, icon, disabled, style, hint, accessib
       haptic={accessibilityRole === 'radio' ? 'tick' : 'tap'} disabled={disabled} onPress={onPress}
       style={[styles.chip, material.fill, on && styles.selected, on && material.selected, disabled && styles.disabled, style]}>
       {icon ? <Ionicons name={on ? filledIcon(icon) : icon} size={16} color={on ? colors.lamp : colors.ink2} /> : null}
-      <Control color={on ? colors.lamp : colors.ink} center>{label}</Control>
+      <Control color={on ? colors.lamp : colors.ink} center
+        {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.8, style: Platform.OS === 'web' ? styles.controlFit : undefined } : {})}>{label}</Control>
     </Press>
   );
 }
@@ -505,6 +508,10 @@ export type ScreenProps = {
   contentStyle?: StyleProp<ViewStyle>;
 };
 
+/** Lets a control that is being dragged (a dial) stop the page from scrolling under the finger. */
+const ScrollLock = createContext<(locked: boolean) => void>(() => {});
+export const useScrollLock = () => useContext(ScrollLock);
+
 export function Screen({ children, scrollRef, overlay, center, texture, depth = 1, playing, softer, worse, fadeInMs, bottomPad = 0, inert = false, contentStyle }: ScreenProps) {
   const wide = useWide();
   const gutter = useGutter();
@@ -520,12 +527,14 @@ export function Screen({ children, scrollRef, overlay, center, texture, depth = 
   const basePad = wide ? 72 : 96 + insets.bottom;
   // With extra padding the content keeps the height it had without it, so centring does not move it.
   const hold = bottomPad > 0 && viewH > 0 ? { minHeight: viewH - paddingTop - basePad } : null;
+  const [locked, setLocked] = useState(false);
   return (
+    <ScrollLock.Provider value={setLocked}>
     <View style={styles.root}>
       <Scene texture={texture} depth={depth} playing={playing} softer={softer} worse={worse} fadeInMs={fadeInMs} />
       <Inert when={inert} style={styles.fill}>
         <SafeAreaView style={styles.grow} edges={['top']}>
-          <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" onLayout={e => setViewH(e.nativeEvent.layout.height)}
+          <ScrollView ref={scrollRef} scrollEnabled={!locked} keyboardShouldPersistTaps="handled" onLayout={e => setViewH(e.nativeEvent.layout.height)}
             contentContainerStyle={[styles.screen, column, { paddingHorizontal: gutter, paddingTop, paddingBottom: basePad + bottomPad }, contentStyle]}>
             <Animated.View style={[styles.content, center && styles.centered, hold, fader]}>{children}</Animated.View>
           </ScrollView>
@@ -533,6 +542,7 @@ export function Screen({ children, scrollRef, overlay, center, texture, depth = 
       </Inert>
       {overlay}
     </View>
+    </ScrollLock.Provider>
   );
 }
 
@@ -617,6 +627,7 @@ export const styles = StyleSheet.create({
   segmentLabel: { flexShrink: 1, textAlign: 'center' },
   hidden: { display: 'none' },
   segmentOn: { backgroundColor: colors.smokePressed, borderColor: colors.lampDeep },
+  controlFit: { fontSize: 14.5, whiteSpace: 'nowrap' } as TextStyle,
   chip: { flexDirection: 'row', gap: 8, minHeight: 48, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.smoke, borderRadius: radius.chip, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   tile: { flexGrow: 1, borderRadius: radius.tile, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.smoke, padding: 16, gap: 10, overflow: 'hidden' },
   tileSquare: { flexBasis: '46%', minHeight: 104, justifyContent: 'space-between' },

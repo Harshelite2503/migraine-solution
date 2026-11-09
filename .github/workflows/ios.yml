@@ -136,5 +136,7 @@ jobs:
           git init -q && git checkout -q -b ios-test-results
           git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
           echo "iOS test results for ${{ github.sha }} (run ${{ github.run_id }})" > README.md
+          # GitHub refuses files over 100 MB; simulator logs can exceed that. They stay in the run's artifact.
+          find . -type f -size +45M -print -delete
           git add -A && git commit -qm "iOS test results for ${{ github.sha }}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ios-test-results
