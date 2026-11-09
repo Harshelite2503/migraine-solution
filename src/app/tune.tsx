@@ -13,6 +13,7 @@ import { Tests } from '../components/build/Tests';
 import { Refine } from '../components/build/Refine';
 import { RecipeCard } from '../components/build/RecipeCard';
 import { SupportCard } from '../components/SupportCard';
+import { AccountCard, SharingCard } from '../components/AccountCard';
 import { Button, Columns, confirmAction, Eyebrow, H1, H2, Ionicons, Muted, Screen, styles, tap, useWide, type IconName } from '../lib/ui';
 import { colors } from '../lib/theme';
 import { track } from '../lib/activity';
@@ -108,6 +109,8 @@ export default function MySound() {
       {deeper && DEEPER.map(row)}
       </>} right={<>
       {wide && <HowItWorks />}
+      <AccountCard />
+      <SharingCard />
       <SupportCard />
       <Muted small>Preferring a sound is not the same as it reducing pain. Still is for comfort and does not diagnose, treat or prevent migraine.</Muted>
       </>} />

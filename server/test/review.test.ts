@@ -75,3 +75,20 @@ await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetc
 await assert.rejects(reviewRecipe(openRouterModel({ apiKey: 'k', fetchFn: orFetch(429, { error: { code: 429, message: 'rate limited' } }) }), request),
   (e: unknown) => e instanceof ProviderError && e.status === 429);
 console.log('server ok');
+
+// Sign-in check for the review endpoint: Supabase decides who may ask, and how often.
+{
+  const { claimReview } = await import('../src/functions/review.js');
+  const cfg = (status: number, body: unknown) => ({ url: 'https://x.supabase.co', key: 'pub', fetcher: (async (u: string, init: any) => {
+    assert.equal(u, 'https://x.supabase.co/rest/v1/rpc/claim_review');
+    assert.equal(init.headers.Authorization, 'Bearer tok');
+    return new Response(JSON.stringify(body), { status });
+  }) as unknown as typeof fetch });
+  assert.equal(await claimReview(null, cfg(200, true)), 'unauthorized');
+  assert.equal(await claimReview('Bearer tok', cfg(200, true)), 'ok');
+  assert.equal(await claimReview('Bearer tok', cfg(200, false)), 'limit');
+  assert.equal(await claimReview('Bearer tok', cfg(401, {})), 'unauthorized');
+  assert.equal(await claimReview('Bearer tok', cfg(500, {})), 'unavailable');
+  assert.equal(await claimReview('Bearer tok', { url: '', key: '' }), 'unavailable');
+  console.log('review sign-in check ok');
+}

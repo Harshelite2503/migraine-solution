@@ -4,7 +4,7 @@ import { Switch, Text, View } from 'react-native';
 import { EVIDENCE } from '../../recipe/evidence.js';
 import { describeRecipe } from '../../recipe/recipe.js';
 import { recipeFor, type AnyState, type Profile } from '../../lib/profile';
-import { aiAvailable, requestReview, reviewPayload } from '../../lib/ai';
+import { aiAvailable, requestReview, reviewPayload, ReviewError } from '../../lib/ai';
 import { loadJournal } from '../../lib/storage';
 import * as player from '../../lib/player';
 import { Button, H2, Muted, Segmented } from '../../lib/ui';
@@ -43,7 +43,7 @@ export function RecipeCard({ profile, onChange }: Props) {
       const ai = await requestReview(profile, await loadJournal());
       onChange({ ...profile, aiReview: ai });
       setNote(ai.rationale.length ? 'Review added. Changes are marked "AI review" above; the safety limits still apply.' : 'Review added: no changes needed.');
-    } catch { setNote('The review could not be reached. Your recipe still works without it.'); }
+    } catch (e) { setNote(e instanceof ReviewError ? e.message : 'The review could not be reached. Your recipe still works without it.'); }
     setBusy(false);
   };
 

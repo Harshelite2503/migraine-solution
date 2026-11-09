@@ -44,6 +44,9 @@ export function Sidebar() {
       <View style={{ gap: 8, paddingHorizontal: 10 }}>
         <Text style={{ color: colors.faint, fontSize: 12, lineHeight: 18 }}>The sound is made in your browser. Nothing you choose leaves it.</Text>
         <Text style={{ color: colors.faint, fontSize: 12, lineHeight: 18 }}>For comfort, not treatment.</Text>
+        <Pressable accessibilityRole="link" onPress={() => { if (typeof window !== 'undefined') window.open('/privacy.html', '_blank'); }}>
+          <Text style={{ color: colors.muted, fontSize: 12, textDecorationLine: 'underline' }}>Privacy</Text>
+        </Pressable>
       </View>
     </View>
   );
