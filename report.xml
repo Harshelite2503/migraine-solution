@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="iPhone 17 Pro - iOS 26.5 - FCC5F673-7BEC-4A7D-8F2A-4DC35E2668EC" tests="3" failures="0" time="187.551" timestamp="2026-11-09T17:11:04">
+    <testcase id="Quiet room" name="Quiet room" classname="Quiet room" file=".maestro/01-quiet-room.yaml" time="114.26" timestamp="2026-11-09T17:11:04" status="SUCCESS"/>
+    <testcase id="Build my sound" name="Build my sound" classname="Build my sound" file=".maestro/02-build-my-sound.yaml" time="54.215" timestamp="2026-11-09T17:12:58" status="SUCCESS"/>
+    <testcase id="Journal" name="Journal" classname="Journal" file=".maestro/03-journal.yaml" time="18.947" timestamp="2026-11-09T17:13:52" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

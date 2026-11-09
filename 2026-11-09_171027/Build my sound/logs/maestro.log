@@ -1,0 +1,101 @@
+17:12:58.753 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Define variables RUNNING
+17:12:58.754 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Define variables COMPLETED
+17:12:58.755 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Apply configuration RUNNING
+17:12:58.755 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Apply configuration COMPLETED
+17:12:58.755 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Launch app "com.stillsoundlab.still" RUNNING
+17:12:59.835 [ INFO] maestro.Maestro.launchApp$lambda$6: Launching app com.stillsoundlab.still
+17:12:59.835 [ INFO] maestro.Maestro.launchApp$lambda$6: Stopping com.stillsoundlab.still app during launch
+17:13:02.766 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Launch app "com.stillsoundlab.still" COMPLETED
+17:13:02.780 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Tap on id: tab-sound RUNNING
+17:13:06.398 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={accessibilityText=My sound, tab, 3 of 3, title=, value=, text=, hintText=, resource-id=tab-sound, bounds=[268,791][402,840], enabled=true, focused=false, selected=false, checked=false}, children=[], clickable=null, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=268, y=791, width=134, height=49))
+17:13:06.718 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tap aimed via trusted pre-wait hierarchy (null settle, no recent scroll)
+17:13:06.719 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Try tapping at (335, 815) using hierarchy based logic for wait
+17:13:06.720 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+17:13:06.720 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:08.843 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Something have changed in the UI judging by view hierarchy. Proceed.
+17:13:08.845 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Tap on id: tab-sound COMPLETED
+17:13:08.845 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Assert that "Your sound" is visible RUNNING
+17:13:09.049 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Assert that "Your sound" is visible COMPLETED
+17:13:09.049 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Take screenshot 06-my-sound RUNNING
+17:13:09.051 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+17:13:09.051 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:09.236 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Take screenshot 06-my-sound COMPLETED
+17:13:09.236 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Tap on "Ocean" RUNNING
+17:13:09.454 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={accessibilityText=Ocean, title=, value=radio button, unchecked, text=radio button, unchecked, hintText=, resource-id=, bounds=[206,237][384,341], enabled=true, focused=false, selected=false, checked=false}, children=[], clickable=null, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=206, y=237, width=178, height=104))
+17:13:09.796 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tap aimed via trusted pre-wait hierarchy (null settle, no recent scroll)
+17:13:09.797 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Try tapping at (295, 289) using hierarchy based logic for wait
+17:13:09.798 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+17:13:09.798 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:11.165 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Something have changed in the UI judging by view hierarchy. Proceed.
+17:13:11.166 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Tap on "Ocean" COMPLETED
+17:13:11.166 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Take screenshot 07-mixer RUNNING
+17:13:11.169 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+17:13:11.169 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:11.335 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Take screenshot 07-mixer COMPLETED
+17:13:11.341 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Scrolling DOWN until "Let Still choose by ear" is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled RUNNING
+17:13:12.312 [ WARN] maestro.orchestra.Orchestra.scrollUntilVisible: Error: maestro.MaestroException$ElementNotFound: Element not found: Text matching regex: Let Still choose by ear
+17:13:12.323 [ INFO] maestro.Maestro.swipeFromCenter: Swiping UP from center
+17:13:14.984 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Scrolling try count: 0, DeviceWidth: 402, DeviceWidth: 874
+17:13:14.985 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Element bounds: Bounds(x=37, y=471, width=328, height=40)
+17:13:14.985 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Visibility Percent: 1.0
+17:13:14.991 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Command centerElement: ScrollUntilVisibleCommand(selector=ElementSelector(textRegex=Let Still choose by ear, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), direction=DOWN, scrollDuration=601, visibilityPercentage=100, timeout=20000, waitToSettleTimeoutMs=null, centerElement=true, originalSpeedValue=40, label=null, optional=false).centerElement
+17:13:14.991 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: visibilityPercentageNormalized: 1.0
+17:13:14.992 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Scrolling DOWN until "Let Still choose by ear" is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled COMPLETED
+17:13:14.992 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Tap on "Let Still choose by ear" RUNNING
+17:13:15.193 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={accessibilityText=Let Still choose by ear, title=, value=, text=, hintText=, resource-id=, bounds=[37,471][365,511], enabled=true, focused=false, selected=false, checked=false}, children=[], clickable=null, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=37, y=471, width=328, height=40))
+17:13:15.814 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tap aimed via stabilised hierarchy (null settle after a scroll)
+17:13:16.003 [ INFO] maestro.Maestro.refreshElementUntilStable-Hkttul8: Element is still moving (null -> Bounds(x=37, y=471, width=328, height=40)). Waiting for its position to settle.
+17:13:16.389 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Try tapping at (201, 491) using hierarchy based logic for wait
+17:13:16.390 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+17:13:16.390 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:17.267 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Something have changed in the UI judging by view hierarchy. Proceed.
+17:13:17.268 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Tap on "Let Still choose by ear" COMPLETED
+17:13:17.268 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Scrolling DOWN until "Play A then B" is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled RUNNING
+17:13:17.498 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Scrolling try count: 0, DeviceWidth: 402, DeviceWidth: 874
+17:13:17.498 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Element bounds: Bounds(x=37, y=697, width=328, height=57)
+17:13:17.498 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Visibility Percent: 1.0
+17:13:17.498 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Command centerElement: ScrollUntilVisibleCommand(selector=ElementSelector(textRegex=Play A then B, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), direction=DOWN, scrollDuration=601, visibilityPercentage=100, timeout=20000, waitToSettleTimeoutMs=null, centerElement=true, originalSpeedValue=40, label=null, optional=false).centerElement
+17:13:17.498 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: visibilityPercentageNormalized: 1.0
+17:13:17.532 [ INFO] maestro.Maestro.swipeFromCenter: Swiping UP from center
+17:13:19.950 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Scrolling try count: 1, DeviceWidth: 402, DeviceWidth: 874
+17:13:19.950 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Element bounds: Bounds(x=37, y=274, width=328, height=57)
+17:13:19.951 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Visibility Percent: 1.0
+17:13:19.951 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Command centerElement: ScrollUntilVisibleCommand(selector=ElementSelector(textRegex=Play A then B, idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), direction=DOWN, scrollDuration=601, visibilityPercentage=100, timeout=20000, waitToSettleTimeoutMs=null, centerElement=true, originalSpeedValue=40, label=null, optional=false).centerElement
+17:13:19.951 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: visibilityPercentageNormalized: 1.0
+17:13:19.951 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Scrolling DOWN until "Play A then B" is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled COMPLETED
+17:13:19.951 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Take screenshot 08-tune-by-ear RUNNING
+17:13:19.952 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+17:13:19.953 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:20.096 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Take screenshot 08-tune-by-ear COMPLETED
+17:13:20.096 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Tap on "Play A then B" RUNNING
+17:13:20.295 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={accessibilityText=Play A then B, title=, value=, text=, hintText=, resource-id=, bounds=[37,274][365,331], enabled=true, focused=false, selected=false, checked=false}, children=[], clickable=null, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=37, y=274, width=328, height=57))
+17:13:21.175 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tap aimed via stabilised hierarchy (null settle after a scroll)
+17:13:21.396 [ INFO] maestro.Maestro.refreshElementUntilStable-Hkttul8: Element is still moving (null -> Bounds(x=37, y=274, width=328, height=57)). Waiting for its position to settle.
+17:13:21.907 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Try tapping at (201, 302) using hierarchy based logic for wait
+17:13:21.908 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+17:13:21.908 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:22.797 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Something have changed in the UI judging by view hierarchy. Proceed.
+17:13:22.798 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Tap on "Play A then B" COMPLETED
+17:13:22.798 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Assert that "Playing…" is visible RUNNING
+17:13:23.003 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Assert that "Playing…" is visible COMPLETED
+17:13:23.004 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Assert that "Play again" is visible RUNNING
+17:13:34.653 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Assert that "Play again" is visible COMPLETED
+17:13:34.654 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Tap on "A felt calmer" RUNNING
+17:13:34.860 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tapping on element:  UiElement(treeNode=TreeNode(attributes={accessibilityText=A felt calmer, title=, value=, text=, hintText=, resource-id=, bounds=[37,341][197,391], enabled=true, focused=false, selected=false, checked=false}, children=[], clickable=null, enabled=true, focused=false, checked=false, selected=false), bounds=Bounds(x=37, y=341, width=160, height=50))
+17:13:35.178 [ INFO] maestro.Maestro.tap-HgV9Ck0: Tap aimed via trusted pre-wait hierarchy (null settle, no recent scroll)
+17:13:35.179 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Try tapping at (117, 366) using hierarchy based logic for wait
+17:13:35.180 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to byte array
+17:13:35.180 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:36.028 [ INFO] maestro.Maestro.screenshotBasedTap-ogj28Uc: Something have changed in the UI judging by view hierarchy. Proceed.
+17:13:36.028 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Tap on "A felt calmer" COMPLETED
+17:13:36.028 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Scrolling DOWN until "Noted. Play the next pair when you are ready." is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled RUNNING
+17:13:36.237 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Scrolling try count: 0, DeviceWidth: 402, DeviceWidth: 874
+17:13:36.238 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Element bounds: Bounds(x=37, y=521, width=328, height=21)
+17:13:36.238 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Visibility Percent: 1.0
+17:13:36.238 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: Command centerElement: ScrollUntilVisibleCommand(selector=ElementSelector(textRegex=Noted. Play the next pair when you are ready., idRegex=null, size=null, below=null, above=null, leftOf=null, rightOf=null, containsChild=null, containsDescendants=null, traits=null, index=null, enabled=null, optional=false, selected=null, checked=null, focused=null, childOf=null, css=null), direction=DOWN, scrollDuration=601, visibilityPercentage=100, timeout=20000, waitToSettleTimeoutMs=null, centerElement=true, originalSpeedValue=40, label=null, optional=false).centerElement
+17:13:36.238 [ INFO] maestro.orchestra.Orchestra.scrollUntilVisible: visibilityPercentageNormalized: 1.0
+17:13:36.238 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Scrolling DOWN until "Noted. Play the next pair when you are ready." is visible with speed 40, visibility percentage 100%, timeout 20000 ms, with centering enabled COMPLETED
+17:13:36.238 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandStart: Take screenshot 09-after-choice RUNNING
+17:13:36.239 [ INFO] maestro.Maestro.takeScreenshot: Taking screenshot
+17:13:36.239 [TRACE] maestro.utils.ScreenshotUtils.takeScreenshot: Taking screenshot to output sink
+17:13:36.387 [ INFO] maestro.cli.runner.CliConsoleListener.onCommandFinished: Take screenshot 09-after-choice COMPLETED
