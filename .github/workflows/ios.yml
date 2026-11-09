@@ -16,6 +16,7 @@ on:
       - '.github/workflows/android.yml'
       - '.github/workflows/review-*.yml'
       - '.github/workflows/security.yml'
+      - '.github/workflows/web.yml'
   pull_request:
     paths-ignore:
       - 'research/**'
@@ -27,6 +28,7 @@ on:
       - '.github/workflows/android.yml'
       - '.github/workflows/review-*.yml'
       - '.github/workflows/security.yml'
+      - '.github/workflows/web.yml'
   workflow_dispatch:
 
 concurrency:

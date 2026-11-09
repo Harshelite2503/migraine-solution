@@ -60,10 +60,14 @@ jobs:
       - name: Check the live site
         if: github.ref == 'refs/heads/main'
         run: |
+          # The script file name carries a hash of the build, so a match means this build is live.
           URL="https://$WEB_STORAGE_ACCOUNT.z20.web.core.windows.net"
-          for i in 1 2 3 4 5; do
-            JS=$(curl -fsS "$URL/" | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1) || true
-            if [ -n "$JS" ] && curl -fsS "$URL$JS" | grep -q "Make my sound"; then echo "Live: $URL"; exit 0; fi
+          WANT=$(grep -o '/_expo/static/js/web/[^"]*\.js' dist-web/index.html | head -1)
+          grep -rlq "Make my sound" dist-web/_expo || { echo "The build does not contain the new setup"; exit 1; }
+          for i in 1 2 3 4 5 6; do
+            GOT=$(curl -fsS -H 'Cache-Control: no-cache' "$URL/?v=$GITHUB_SHA" | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1 || true)
+            echo "attempt $i: live $GOT, built $WANT"
+            if [ -n "$WANT" ] && [ "$GOT" = "$WANT" ]; then echo "Live: $URL"; exit 0; fi
             sleep 15
           done
-          echo "The live site does not show the new version yet"; exit 1
+          exit 1
