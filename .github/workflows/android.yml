@@ -73,7 +73,7 @@ jobs:
           props=gradle/wrapper/gradle-wrapper.properties
           url=$(sed -n 's/^distributionUrl=//p' "$props" | sed 's#\\:#:#g')
           mkdir -p ~/gradle-dist && file=~/gradle-dist/$(basename "$url")
-          [ -s "$file" ] || curl -fL --retry 8 --retry-all-errors --retry-delay 15 --connect-timeout 30 --max-time 900 -o "$file" "$url"
+          [ -s "$file" ] || curl -fL --retry 20 --retry-all-errors --retry-delay 30 --connect-timeout 30 --max-time 1200 -o "$file" "$url"
           sed -i "s#^distributionUrl=.*#distributionUrl=file\\://$file#" "$props"
           sed -i 's/^networkTimeout=.*/networkTimeout=120000/' "$props"
       - name: Prefer Google's Maven Central mirror
