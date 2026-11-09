@@ -60,14 +60,13 @@ jobs:
       - name: Check the live site
         if: github.ref == 'refs/heads/main'
         run: |
-          # The script file name carries a hash of the build, so a match means this build is live.
+          # Fetch, from the live site, the exact script file of this build that holds the setup screen.
           URL="https://$WEB_STORAGE_ACCOUNT.z20.web.core.windows.net"
-          WANT=$(grep -o '/_expo/static/js/web/[^"]*\.js' dist-web/index.html | head -1)
-          grep -rlq "Make my sound" dist-web/_expo || { echo "The build does not contain the new setup"; exit 1; }
+          FILE=$(grep -rl "Make my sound" dist-web/_expo | head -1)
+          [ -n "$FILE" ] || { echo "The build does not contain the new setup"; exit 1; }
+          PATH_ON_SITE="${FILE#dist-web}"
           for i in 1 2 3 4 5 6; do
-            GOT=$(curl -fsS -H 'Cache-Control: no-cache' "$URL/?v=$GITHUB_SHA" | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1 || true)
-            echo "attempt $i: live $GOT, built $WANT"
-            if [ -n "$WANT" ] && [ "$GOT" = "$WANT" ]; then echo "Live: $URL"; exit 0; fi
-            sleep 15
+            if curl -fsS "$URL$PATH_ON_SITE" | grep -q "Make my sound"; then echo "Live: $URL ($PATH_ON_SITE)"; exit 0; fi
+            echo "attempt $i: $PATH_ON_SITE not live yet"; sleep 15
           done
           exit 1
