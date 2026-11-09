@@ -98,11 +98,23 @@ jobs:
           curl -fsSL "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
       - name: Run the app tests
-        timeout-minutes: 20
+        timeout-minutes: 25
+        env:
+          # The iOS test driver is slow to start on GitHub runners; give it longer before failing.
+          MAESTRO_DRIVER_STARTUP_TIMEOUT: "120000"
         run: |
           set -o pipefail
           mkdir -p ios-results
-          maestro --device "$UDID" test .maestro --format junit --output ios-results/report.xml --test-output-dir ios-results 2>&1 | tee ios-results/maestro.log
+          # One retry: the simulator driver sometimes fails to attach on the first attempt.
+          for attempt in 1 2; do
+            if maestro --device "$UDID" test .maestro --format junit --output ios-results/report.xml --test-output-dir ios-results 2>&1 | tee ios-results/maestro.log; then
+              break
+            fi
+            if grep -q "driver not ready\|IOSDriverTimeoutException" ios-results/maestro.log && [ "$attempt" = 1 ]; then
+              echo "::warning::iOS driver did not start; retrying once"; sleep 10; continue
+            fi
+            exit 1
+          done
       - name: Collect screenshots
         if: always()
         run: |
