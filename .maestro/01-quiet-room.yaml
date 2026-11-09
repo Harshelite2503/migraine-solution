@@ -24,6 +24,7 @@ name: Quiet room
 - extendedWaitUntil:
     visible: "Turn it to taste"
     timeout: 6000
+- tapOn: "Tone up"
 - takeScreenshot: 00d-dial
 - tapOn: "Save my sound"
 - extendedWaitUntil:

@@ -1,7 +1,7 @@
 // Shared UI pieces. Every pressable gives instant feedback (scale + a light haptic tap) on touch
 // down, before any slow work starts, so the app always feels responsive.
-import type { ReactNode } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -17,6 +17,21 @@ export function confirmAction(title: string, message: string, okLabel: string, o
 }
 export const tick = () => { Haptics.selectionAsync().catch(() => {}); };
 export { Ionicons };
+
+/** True when the phone asks for reduced motion. Animations then switch to simple cuts. */
+export function useReduceMotion() {
+  const [reduce, setReduce] = useState(false);
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduce).catch(() => {});
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
+    return () => sub.remove();
+  }, []);
+  return reduce;
+}
+
+/** Lets a control that is being dragged (a dial) stop the page from scrolling under the finger. */
+const ScrollLock = createContext<(locked: boolean) => void>(() => {});
+export const useScrollLock = () => useContext(ScrollLock);
 
 /**
  * True only in a desktop-width browser window. Phones (and narrow browsers) always get false, so
@@ -41,14 +56,17 @@ export function Columns({ left, right, rightWidth = 440, gap = 40, align = 'flex
 
 export function Screen({ children, scrollRef, overlay, center }: { children: ReactNode; scrollRef?: any; overlay?: ReactNode; center?: boolean }) {
   const wide = useWide();
+  const [locked, setLocked] = useState(false);
   return (
+    <ScrollLock.Provider value={setLocked}>
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <ScrollView ref={scrollRef} contentContainerStyle={wide ? [styles.screen, styles.screenWide, center && { justifyContent: 'center' }] : styles.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+        <ScrollView ref={scrollRef} scrollEnabled={!locked} contentContainerStyle={wide ? [styles.screen, styles.screenWide, center && { justifyContent: 'center' }] : styles.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>
       </SafeAreaView>
       {overlay}
     </View>
+    </ScrollLock.Provider>
   );
 }
 
