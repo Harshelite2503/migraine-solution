@@ -99,7 +99,9 @@ export default function QuietRoom() {
   }, [profile, state]);
 
   // Prepare both sounds for this state while the screen is idle.
-  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer]); }, [recipes]);
+  // Also again when the first-run setup closes: its preview was playing, and background renders
+  // never compete with playback, so a sound changed during setup would otherwise not be ready.
+  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer], setup ? 700 : 150); }, [recipes, setup]);
 
   const begin = (choice: Choice, levelDb: number | null) => {
     const at = new Date();
