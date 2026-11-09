@@ -54,7 +54,7 @@ jobs:
             AUTH=(--account-key "$KEY")
           fi
           az storage blob upload-batch --account-name "$WEB_STORAGE_ACCOUNT" -d '$web' -s dist-web --overwrite --only-show-errors -o none "${AUTH[@]}"
-          for route in tune journal; do
+          for route in tune journal welcome; do
             az storage blob upload --account-name "$WEB_STORAGE_ACCOUNT" -c '$web' -n "$route" -f dist-web/index.html --content-type text/html --overwrite --only-show-errors -o none "${AUTH[@]}"
           done
       - name: Check the live site

@@ -1,0 +1,256 @@
+/* The landing page's own stylesheet (web only, imported by Landing.web.tsx).
+   Colours arrive as custom properties set on .lp from src/lib/theme.ts, so the palette has one source.
+   The one literal here is dusk, the page's brightest pixel (0.0094 luminance); it exists nowhere else.
+   Fonts are the families expo-font registers for the app; no @font-face, nothing from the network. */
+
+.lp {
+  --dusk: #141826;
+  --col: 720px;
+  --page: 1120px;
+  --gutter: 20px;
+  --mast: 64px;
+  --font-display: 'Fraunces_300Light', system-ui, sans-serif;
+  --font-display-italic: 'Fraunces_300Light_Italic', system-ui, sans-serif;
+  --font-title: 'Fraunces_400Regular', system-ui, sans-serif;
+  --font-body: 'Inter_400Regular', system-ui, sans-serif;
+  --font-ui: 'Inter_500Medium', system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+
+  /* Fixed over the app shell (whose body never scrolls), and its own scroll container. */
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: var(--night);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 24px;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
+}
+@media (min-width: 768px) { .lp { --gutter: 32px; } }
+@media (min-width: 960px) { .lp { --gutter: 56px; } }
+
+.lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
+.lp h1, .lp h2, .lp h3, .lp p, .lp ul { margin: 0; font-weight: 400; }
+.lp ul { padding: 0; list-style: none; }
+:where(.lp a) { color: inherit; text-decoration: none; }
+.lp svg { display: block; }
+.lp :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.lp main:focus { outline: none; }
+.lp [tabindex="-1"]:focus { outline: none; }
+
+/* Backgrounds. Night is flat; dusk sits above it and fades out by scroll (opacity only, composite-only).
+   Under reduced motion the dusk layer is not rendered at all. */
+.lp-night, .lp-dusk { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.lp-night { background: var(--night); }
+.lp-dusk { background: linear-gradient(180deg, var(--dusk) 0%, var(--night) 100%); will-change: opacity; }
+
+/* Everything readable waits for the fonts (240 ms fade), as the app's screens do. */
+.lp-page { position: relative; z-index: 1; opacity: 0; transition: opacity 240ms var(--ease-out); }
+.lp-page.is-ready { opacity: 1; }
+/* Entering the room: the page and the dusk both fade over 240 ms onto night, the room's own floor. */
+.lp-page.is-leaving { opacity: 0; }
+.lp.is-leaving .lp-dusk { opacity: 0 !important; transition: opacity 240ms var(--ease-out); }
+
+/* Skip link: off-screen until it has keyboard focus. */
+.lp-skip {
+  position: absolute; top: 8px; left: 8px; z-index: 40;
+  width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.lp-skip:focus-visible {
+  width: auto; height: auto; clip-path: none; overflow: visible;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+  border-radius: 18px; background: var(--solid); border: 1px solid var(--hairline-lit);
+  color: var(--ink); font-family: var(--font-ui);
+}
+.lp-visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Layout */
+.lp-wrap {
+  width: 100%; max-width: var(--page); margin: 0 auto;
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
+}
+.lp-col { max-width: var(--col); }
+.lp-section { padding: 72px 0; scroll-margin-top: calc(var(--mast) + 8px); }
+@media (min-width: 768px) { .lp-section { padding: 96px 0; } }
+@media (min-width: 960px) { .lp-section { padding: 112px 0; } }
+.lp-stack { display: grid; gap: 16px; }
+.lp-stack > p + p { margin-top: -4px; }
+
+/* Type roles, mirroring ui.tsx */
+.lp-eyebrow {
+  font-family: var(--font-ui); font-size: 11.5px; line-height: 16px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--ink2);
+}
+.lp-h1 {
+  font-family: var(--font-display); font-size: clamp(40px, 7vw, 76px); line-height: 1.05;
+  letter-spacing: -0.02em; color: var(--ink); text-wrap: balance;
+}
+.lp-h2 { font-family: var(--font-title); font-size: 26px; line-height: 32px; letter-spacing: -0.3px; color: var(--ink); text-wrap: balance; }
+@media (min-width: 960px) { .lp-h2 { font-size: 30px; line-height: 36px; } }
+.lp-h3 { font-family: var(--font-title); font-size: 20px; line-height: 26px; letter-spacing: -0.1px; color: var(--ink); }
+.lp-italic { font-family: var(--font-display-italic); font-size: 24px; line-height: 30px; letter-spacing: -0.2px; color: var(--ink2); }
+@media (min-width: 960px) { .lp-italic { font-size: 30px; line-height: 36px; } }
+.lp-body { color: var(--ink); }
+.lp-lead { color: var(--ink2); }
+.lp-label { font-family: var(--font-ui); font-size: 13px; line-height: 18px; letter-spacing: 0.1px; color: var(--ink2); }
+.lp-caption { font-size: 12.5px; line-height: 18px; letter-spacing: 0.1px; color: var(--ink2); }
+.lp-caption.is-dim { color: var(--ink3); }
+
+/* Controls. Every one is at least 44 px tall; feedback lands on press, not release. */
+.lp-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 56px; padding: 0 24px; border-radius: 18px; border: 1px solid transparent;
+  font-family: var(--font-ui); font-size: 16px; line-height: 22px; text-align: center;
+  cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  transition: transform 120ms var(--ease-out), background-color 160ms ease, color 160ms ease;
+}
+.lp-btn:active { transform: scale(0.97); }
+.lp-btn-primary { background: var(--lamp); color: var(--on-lamp); }
+.lp-btn-smoke { background: var(--smoke); border-color: var(--hairline); color: var(--ink); }
+.lp-btn-quiet { background: transparent; color: var(--ink2); }
+.lp-btn-outline { background: transparent; border-color: var(--lamp); color: var(--lamp); }
+.lp-btn-pill { min-height: 44px; padding: 0 16px; border-radius: 999px; font-size: 14px; line-height: 20px; }
+.lp-link {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 14px;
+  font-family: var(--font-ui); font-size: 14px; line-height: 20px; color: var(--ink2);
+  user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .lp-btn-smoke:hover, .lp-link:hover { background: var(--smoke-pressed); }
+  .lp-btn-quiet:hover, .lp-link:hover { color: var(--ink); }
+  .lp-btn-outline:hover { background: var(--lamp-glow); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-btn { transition: background-color 160ms ease, color 160ms ease, opacity 160ms ease; }
+  .lp-btn:active { transform: none; opacity: 0.8; }
+}
+
+/* 0. Headache-now bar: a static strip, first thing on the page. */
+.lp-now {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 16px;
+  min-height: 52px; padding: 4px 0; border-bottom: 1px solid var(--hairline);
+  font-size: 14px; line-height: 20px; color: var(--ink2);
+}
+.lp-now > .lp-wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 16px; }
+
+/* 1. Masthead: sticky, the one translucent surface on the page. */
+.lp-mast {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--glass); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--hairline);
+}
+.lp-mast > .lp-wrap { display: flex; align-items: center; gap: 8px; min-height: var(--mast); padding-top: 6px; padding-bottom: 6px; }
+@media (prefers-reduced-transparency: reduce) {
+  .lp-mast { background: var(--solid); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+.lp-brand {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; margin-right: auto; padding-right: 8px;
+  font-family: var(--font-title); font-size: 20px; line-height: 26px; color: var(--ink);
+}
+.lp-mast-nav { display: flex; align-items: center; gap: 4px; }
+@media (max-width: 479px) { .lp-link.is-optional { display: none; } }
+
+/* 2. Hero: fills the first screen below the bar and the masthead. */
+.lp-hero { min-height: calc(100svh - 52px - var(--mast)); display: flex; align-items: center; padding: 40px 0 56px; }
+.lp-hero > .lp-wrap { display: grid; gap: 32px; align-items: center; }
+@media (min-width: 960px) { .lp-hero > .lp-wrap { grid-template-columns: minmax(0, var(--col)) 1fr; gap: 56px; } }
+.lp-hero-copy { display: grid; gap: 20px; }
+.lp-hero-copy .lp-h1 { margin-top: -4px; }
+.lp-hero-lead { font-size: 18px; line-height: 28px; color: var(--ink2); max-width: 560px; }
+.lp-hero-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px; }
+.lp-hero-art { display: flex; justify-content: center; }
+@media (min-width: 960px) { .lp-hero-art { justify-content: center; order: 2; } }
+.lp-hint { display: block; width: 1px; height: 48px; background: var(--hairline-lit); transform-origin: top center; margin-top: 8px; }
+
+/* The CSS lamp: a disc in the rain floor colour, a 2 px ring breathing by opacity (10 s, off under reduced motion). */
+.lp-lamp { position: relative; width: 160px; height: 160px; }
+@media (min-width: 768px) { .lp-lamp { width: 200px; height: 200px; } }
+.lp-lamp-disc { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, var(--rain-floor-0), var(--rain-floor-1)); }
+.lp-lamp-ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--lamp); opacity: 0.32; animation: lp-breath 10s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
+.lp-lamp-glyph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.lp-lamp-glyph svg { width: 40px; height: 40px; transform: translateX(3px); }
+.lp-lamp-glyph path { fill: var(--lamp); }
+@keyframes lp-breath { 0% { opacity: 0.22; } 45% { opacity: 0.42; } 100% { opacity: 0.22; } }
+@media (prefers-reduced-motion: reduce) { .lp-lamp-ring { animation: none; opacity: 0.32; } }
+
+/* 3. Three choices: smoke cards with miniature-scene headers. */
+.lp-cards { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 768px) { .lp-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.lp-card { background: var(--smoke); border: 1px solid var(--hairline); border-radius: 24px; overflow: hidden; }
+.lp-card-scene { position: relative; height: 88px; background: linear-gradient(180deg, var(--scene-0), var(--scene-1)); }
+.lp-card-scene::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, var(--night), var(--black)); opacity: var(--tint, 0); }
+.lp-card-scene.has-horizon::before { content: ''; position: absolute; left: 0; right: 0; top: 55%; height: 1px; background: var(--hairline-lit); z-index: 1; }
+.lp-card-body { display: grid; gap: 6px; padding: 20px 20px 24px; }
+.lp-card-body p { color: var(--ink2); }
+
+/* 4. The fade-in track: 2 px, fills over 6 s once in view; full and still under reduced motion. */
+.lp-track { position: relative; height: 2px; border-radius: 1px; background: var(--lamp-track); margin-top: 32px; }
+.lp-track-fill { position: absolute; inset: 0; border-radius: 1px; background: var(--lamp); transform-origin: left center; transform: scaleX(0); }
+.lp-track.is-live .lp-track-fill { transform: scaleX(1); transition: transform 6000ms linear; }
+.lp-track-ends { display: flex; justify-content: space-between; gap: 16px; margin-top: 10px; }
+.lp-captions { display: grid; gap: 4px; margin-top: 20px; }
+@media (prefers-reduced-motion: reduce) { .lp-track-fill, .lp-track.is-live .lp-track-fill { transform: scaleX(1); transition: none; } }
+
+/* 5. Privacy picture: a lamp line crosses "your phone" and stops dead at the wall. */
+.lp-wall { margin-top: 28px; }
+.lp-wall svg { width: 100%; height: auto; }
+.lp-wall-strip { fill: var(--smoke); stroke: var(--hairline); }
+.lp-wall-line { stroke: var(--lamp); stroke-width: 2; stroke-linecap: round; fill: none; }
+.lp-wall-edge { stroke: var(--hairline-lit); stroke-width: 2; }
+.lp-wall-labels { display: grid; grid-template-columns: 7fr 3fr; gap: 12px; margin-top: 8px; }
+.lp-wall-labels .lp-label:last-child { text-align: left; }
+/* Too narrow for the wall's own column: the outside label sits at the far end, on one line. */
+@media (max-width: 599px) {
+  .lp-wall-labels { display: flex; justify-content: space-between; }
+  .lp-wall-labels .lp-label { white-space: nowrap; }
+}
+.lp-rows { margin-top: 28px; border-top: 1px solid var(--hairline); }
+.lp-row { display: flex; gap: 14px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid var(--hairline); }
+.lp-row-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--lamp); margin-top: 9px; }
+.lp-row.is-dim .lp-row-dot { background: var(--lamp-deep); margin-top: 6px; }
+
+/* 6. Tuned by ear: a still picture of the dial and two pads. */
+.lp-tune { display: grid; gap: 32px; align-items: center; }
+@media (min-width: 768px) { .lp-tune { grid-template-columns: minmax(0, 1fr) auto; gap: 48px; } }
+.lp-tune-art { display: flex; align-items: center; gap: 28px; }
+.lp-dial { width: 136px; height: 136px; }
+@media (min-width: 768px) { .lp-dial { width: 160px; height: 160px; } }
+.lp-dial-face { fill: var(--smoke); stroke: var(--hairline); }
+.lp-dial-inner { fill: none; stroke: var(--hairline); }
+.lp-dial-mark { stroke: var(--lamp); stroke-width: 4; stroke-linecap: round; }
+.lp-dial-dot { fill: var(--hairline-lit); }
+.lp-dial-dot.is-lit { fill: var(--lamp); }
+.lp-pads { display: grid; gap: 12px; }
+.lp-pad {
+  width: 64px; height: 64px; border-radius: 50%; background: var(--smoke); border: 1px solid var(--hairline);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-title); font-size: 26px; line-height: 1; color: var(--ink);
+}
+.lp-pad.is-on { border-color: var(--lamp-deep); color: var(--lamp); }
+
+/* 7. The medical line: alone between two hairlines, a rose edge on its left. Never animated. */
+.lp-medical { padding: 0; }
+.lp-medical-line { border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); padding: 28px 0; }
+.lp-medical p { border-left: 2px solid var(--rose); padding-left: 16px; color: var(--ink2); max-width: var(--col); }
+
+/* 8. Enter, then the footer. The page sits on exactly night here, the app's own floor. */
+.lp-enter .lp-stack { gap: 24px; }
+.lp-foot { border-top: 1px solid var(--hairline); padding: 32px 0 calc(40px + env(safe-area-inset-bottom)); color: var(--ink2); font-size: 14px; line-height: 20px; }
+.lp-foot > .lp-wrap { display: grid; gap: 20px; }
+.lp-foot-hints { display: grid; gap: 8px; }
+@media (min-width: 768px) { .lp-foot-hints { grid-template-columns: 1fr 1fr; gap: 16px; } }
+.lp-foot-links { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-left: -12px; }
+.lp-foot-links .lp-link { color: var(--ink); }

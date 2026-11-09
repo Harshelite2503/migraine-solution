@@ -20,6 +20,22 @@ This is the React Native (Expo) version of the web prototype in [Harshelite2503/
 | **Journal** (`src/app/journal.tsx`) | Episodes (sessions within 12 hours count as one), how it felt afterwards, and one-tap notes for headaches without Still. |
 | **My sound** (`src/app/tune.tsx`) | A small mixer: four textures and four click-stop dials (Tone, Hum, Motion, Space) that change the sound as it plays (`src/components/Dial.tsx`, `Studio.tsx`). Optional "choose by ear" A/B rounds, and account/privacy settings, sit behind one tap each. |
 
+## Web landing page
+
+The web build has one extra page, `/welcome` (`src/app/welcome.tsx`, drawn by `src/components/landing/Landing.web.tsx` and `landing.css`). It explains Still in plain words: the three choices, the silent start and slow fade-in, what stays on the device, how the sound is tuned by ear, and the medical line. It plays no sound and has nothing to adjust. Every button on it says "Open the quiet room", and the very first line of the page offers that same way out for anyone with a headache right now.
+
+- A browser that has neither finished setup nor seen the page before is sent to `/welcome` once (`src/lib/welcome.ts`). Opening the quiet room from the page sets `still.welcomed` in local storage; finishing or skipping setup sets `onboarded`. Either one means the room opens directly from then on.
+- Phones never see it: on iOS and Android `/welcome` goes straight to the quiet room.
+- It uses the fonts bundled with the app, nothing from the network, and honours reduced motion and reduced transparency.
+- The deploy (`.github/workflows/web.yml`, `scripts/deploy-web.sh`) uploads `welcome` as a route file alongside `tune` and `journal`, so a direct link loads with a normal 200.
+
+## Behaviour changes in the UI revamp
+
+- **Loudness and the sleep timer hide while sound plays.** They fade out when the sound starts and come back when it stops, because changing either would stop the sound by surprise. The line under the lamp shows the current loudness and timer instead.
+- **Softer is the way to go quieter during a session.** It turns the sound down and the room darker without stopping anything.
+- **The "how did that go?" check-in is a sheet**, not a card in the page. It rises below the lamp only after the sound stops, never while it plays; the lamp stays visible and tappable, and the sheet can be dragged down, skipped, or left to close by itself after 90 seconds. On a wide screen it is an inline card.
+- **New `/welcome` route on the web**, described above.
+
 ## Privacy
 
 **Your sound is made entirely on the phone.** The questionnaire, comfort contour, listening tests, preference learning, recipe rules and sound synthesis all run locally. Answers and the journal are stored only on the device (AsyncStorage). There are no accounts, no analytics, no tracking and no ads.
@@ -61,4 +77,5 @@ npx expo run:ios       # needs a Mac with Xcode
 | `src/lib/` | Player, storage, profile rules, theme, UI pieces |
 | `src/engine/` | Sound engine, preference learner, journal logic, WAV encoder (plain JS, shared with the web prototype) |
 | `tests/` | Node tests for the engine and journal |
-| `scripts/` | Azure Android build |
+| `src/components/landing/` | The web landing page (`/welcome`) |
+| `scripts/` | Azure Android build, web deploy |

@@ -1,0 +1,38 @@
+/*
+ * Still's web shell. Imported from webShell.web.ts, so Metro links it into every web build (the default
+ * `single` output ignores +html.tsx; that file only runs under `web.output: static`). Plain CSS cannot
+ * read theme.ts, so the few colours here are the same values as `night`, `solid` and `focusRing`.
+ */
+:root { color-scheme: dark; }
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+  background: #0B0D12;
+}
+body { background: #0B0D12; }
+#root { min-height: 100dvh; }
+/* 16 px keeps iOS Safari from zooming into a focused field. */
+input, textarea, select { font-size: 16px; }
+button, a, [role="button"], [role="tab"], [role="radio"], [role="link"] {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Keyboard focus only: the ring never appears on a click or a tap. */
+:focus-visible { outline: 2px solid rgba(194,154,98,0.7); outline-offset: 3px; }
+:focus:not(:focus-visible) { outline: none; }
+/* Hover lives only on devices that can hover, so a tap never leaves a stuck highlight. */
+@media (hover: hover) and (pointer: fine) {
+  [data-hover="row"]:hover { background-color: rgba(255,255,255,0.04); }
+  [data-hover="link"]:hover, [data-hover="link"]:hover * { color: #E7E2D8; }
+}
+/* Reduced transparency: the blur materials (tab bar, sidebar) go solid. The JS hook does the same; this is the fallback. */
+@media (prefers-reduced-transparency: reduce) {
+  [data-material="glass"] { background-color: #0E1016 !important; }
+  [data-material="glass"], [data-material="glass"] * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}

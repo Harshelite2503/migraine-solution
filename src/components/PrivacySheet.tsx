@@ -1,28 +1,55 @@
 // The privacy policy as an overlay inside the app (same text as the public /privacy.html page).
-import { Modal, ScrollView, Text, View } from 'react-native';
+// The scrim darkens the whole viewport, so it follows the brightness rule, not the platform fade:
+// darker over 900 ms on open, brighter over 700 ms on close (kept under reduced motion).
+import { useCallback, useEffect, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import { PRIVACY_CONTACT, PRIVACY_SECTIONS, PRIVACY_UPDATED } from '../legal/privacy.js';
-import { Button, H1, H2, Muted, styles } from '../lib/ui';
-import { colors } from '../lib/theme';
+import { Body, Button, Caption, Heading, Title, styles as ui } from '../lib/ui';
+import { colors, radius, space } from '../lib/theme';
+import { lum, timing } from '../lib/motion';
 
 export function PrivacySheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  // The Modal stays up while the scrim lifts, then goes.
+  const [mounted, setMounted] = useState(visible);
+  const shown = useSharedValue(0);
+  const unmount = useCallback(() => setMounted(false), []);
+  useEffect(() => {
+    cancelAnimation(shown);
+    if (visible) { setMounted(true); shown.set(withTiming(1, lum(timing.darker))); return; }
+    shown.set(withTiming(0, lum(timing.brighter), finished => { if (finished) scheduleOnRN(unmount); }));
+  }, [visible, shown, unmount]);
+  const fade = useAnimatedStyle(() => ({ opacity: shown.get() }));
+
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-        <View style={{ width: '100%', maxWidth: 640, maxHeight: '92%', backgroundColor: colors.bg, borderRadius: 20, borderWidth: 1, borderColor: colors.line, overflow: 'hidden' }}>
-          <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
-            <H1>Your data stays yours</H1>
-            <Muted>Short version: everything stays on your device unless you choose otherwise.</Muted>
+    <Modal visible={mounted} animationType="none" transparent onRequestClose={onClose}>
+      <Animated.View style={[styles.scrim, fade]} pointerEvents={visible ? 'auto' : 'none'}>
+        <View style={styles.panel} accessibilityViewIsModal>
+          <ScrollView contentContainerStyle={styles.content}>
+            <Title accessibilityRole="header">Your data stays yours</Title>
+            <Body color={colors.ink2}>Short version: everything stays on your device unless you choose otherwise.</Body>
             {PRIVACY_SECTIONS.map(([title, lines]) => (
-              <View key={title} style={[styles.card, { gap: 8 }]}>
-                <H2>{title}</H2>
-                {lines.map(l => <Text key={l} style={{ color: colors.muted, fontSize: 14, lineHeight: 21 }}>{l}</Text>)}
+              <View key={title} style={[ui.card, styles.section]}>
+                <Heading accessibilityRole="header">{title}</Heading>
+                {lines.map(l => <Body key={l} color={colors.ink2}>{l}</Body>)}
               </View>
             ))}
-            <Muted small>{`Questions or deletion requests: ${PRIVACY_CONTACT}. Last updated: ${PRIVACY_UPDATED}.`}</Muted>
+            <Caption>{`Questions or deletion requests: ${PRIVACY_CONTACT}. Last updated: ${PRIVACY_UPDATED}.`}</Caption>
             <Button kind="primary" label="Close" onPress={onClose} />
           </ScrollView>
         </View>
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  scrim: { flex: 1, backgroundColor: colors.scrim, alignItems: 'center', justifyContent: 'center', padding: space.l },
+  panel: {
+    width: '100%', maxWidth: 640, maxHeight: '92%', overflow: 'hidden',
+    backgroundColor: colors.night, borderRadius: radius.sheet, borderWidth: 1, borderColor: colors.hairline, borderTopColor: colors.hairlineLit,
+  },
+  content: { padding: space.xl, gap: space.l },
+  section: { gap: space.s },
+});

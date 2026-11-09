@@ -1,0 +1,298 @@
+/* The landing instrument (Instrument.web.tsx). Scoped under .ins: Metro links every web stylesheet
+   on every route. Colours come from the custom properties .lp sets from theme.ts.
+   Type: Manrope for the instrument's labels (tiny, wide-tracked caps, after Gather), Fraunces for
+   the one sentence a person needs to read. Contrast floor: interactive labels in ink2 (6.6:1),
+   decorative meta in ink3 (captions only). Hover only on fine pointers; press is scale(0.97). */
+
+.ins {
+  --hud: 'Manrope_300Light', 'Manrope', system-ui, sans-serif;
+  --hud-strong: 'Manrope_500Medium', 'Manrope', system-ui, sans-serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --pad: clamp(16px, 3vw, 44px);
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Phone: the field comes straight after the name, so the first screen is the instrument. */
+  grid-template-areas: "top" "stage" "rail" "copy" "strip";
+  gap: 20px;
+  padding: var(--pad);
+  padding-top: 20px;
+  color: var(--ink);
+  background: var(--night);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 700ms var(--ease-out);
+}
+.ins.is-ready { opacity: 1; }
+
+@media (min-width: 960px) {
+  .ins {
+    min-height: calc(100svh - 52px);
+    grid-template-columns: minmax(300px, 380px) minmax(0, 1fr) 168px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top top top" "copy stage rail" "strip strip strip";
+    column-gap: clamp(24px, 3vw, 48px);
+    row-gap: 24px;
+    padding-top: 28px;
+  }
+}
+
+/* The field fills the whole section behind everything; points may drift past the frame. */
+.ins-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  z-index: -1; pointer-events: none;
+}
+
+/* ---------------------------------------------------------------- top */
+.ins-top { grid-area: top; display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.ins-word {
+  margin: 0 0 10px; font-family: var(--hud-strong); font-size: 15px; line-height: 20px;
+  letter-spacing: 0.6em; text-transform: uppercase; color: var(--ink);
+}
+.ins-meta {
+  margin: 0; font-family: var(--hud); font-size: 11px; line-height: 18px;
+  letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink3);
+}
+.ins-hint {
+  display: none; margin: 4px 0 0; font-family: var(--hud); font-size: 11px; line-height: 18px;
+  letter-spacing: 0.28em; text-transform: uppercase; color: var(--ink3); text-align: center;
+}
+@media (min-width: 960px) { .ins-hint { display: block; } }
+.ins-nav { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ins-link {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
+  font-family: var(--hud); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--ink2); text-decoration: none;
+  transition: color 160ms ease;
+}
+.ins-link-lamp { color: var(--lamp); }
+/* Phone: the "Headache right now?" bar above already carries the way in. */
+@media (max-width: 959px) { .ins-nav { display: none; } }
+
+/* ---------------------------------------------------------------- copy */
+.ins-copy { grid-area: copy; display: flex; flex-direction: column; justify-content: center; gap: 16px; max-width: 520px; }
+.ins-eyebrow {
+  margin: 0; font-family: var(--hud-strong); font-size: 11px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--lamp);
+}
+.ins-h1 {
+  margin: 0; font-family: 'Fraunces_300Light', ui-serif, Georgia, serif; font-weight: 300;
+  font-size: clamp(32px, 4.2vw, 56px); line-height: 1.06; letter-spacing: -0.02em; color: var(--ink);
+  text-wrap: balance;
+}
+.ins-lead {
+  margin: 0; font-family: 'Inter_400Regular', system-ui, sans-serif; font-size: 16px; line-height: 25px;
+  color: var(--ink2); max-width: 44ch;
+}
+.ins-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.ins-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 52px; padding: 0 22px; border-radius: 999px;
+  font-family: 'Inter_500Medium', system-ui, sans-serif; font-size: 15px; letter-spacing: 0;
+  text-decoration: none; cursor: pointer; border: 1px solid transparent;
+  transition: transform 160ms var(--ease-out), background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.ins-btn:active, .ins-key:active, .ins-tex:active, .ins-opt:active, .ins-tune-toggle:active { transform: scale(0.97); }
+.ins-btn-primary { background: var(--lamp); color: var(--on-lamp); }
+.ins-btn-ghost { background: transparent; color: var(--ink); border-color: var(--hairline-lit); }
+.ins-btn-ghost.is-on { border-color: var(--lamp-deep); color: var(--lamp); }
+.ins-status {
+  margin: 0; min-height: 36px; font-family: var(--hud); font-size: 11px; line-height: 18px;
+  letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink2);
+}
+
+/* ---------------------------------------------------------------- stage */
+.ins-stage { grid-area: stage; position: relative; height: min(48svh, 420px); min-height: 260px; }
+@media (min-width: 960px) { .ins-stage { height: auto; min-height: 420px; } }
+.ins-corner { position: absolute; width: 18px; height: 18px; }
+.ins-corner::before, .ins-corner::after { content: ''; position: absolute; background: var(--hairline-lit); }
+.ins-corner::before { left: 8px; top: 0; width: 1px; height: 18px; }
+.ins-corner::after { top: 8px; left: 0; height: 1px; width: 18px; }
+.ins-corner.tl { left: -9px; top: -9px; } .ins-corner.tr { right: -9px; top: -9px; }
+.ins-corner.bl { left: -9px; bottom: -9px; } .ins-corner.br { right: -9px; bottom: -9px; }
+.ins-ruler { position: absolute; opacity: 0.9; }
+.ins-ruler.top, .ins-ruler.bottom {
+  left: 24px; right: 24px; height: 10px;
+  background: repeating-linear-gradient(90deg, var(--hairline-lit) 0 1px, transparent 1px 12px);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+          mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.ins-ruler.top { top: 0; } .ins-ruler.bottom { bottom: 0; transform: scaleY(-1); }
+.ins-ruler.left {
+  top: 24px; bottom: 24px; left: 0; width: 10px;
+  background: repeating-linear-gradient(180deg, var(--hairline-lit) 0 1px, transparent 1px 12px);
+  -webkit-mask: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+          mask: linear-gradient(180deg, transparent, #000 12%, #000 88%, transparent);
+}
+.ins-frame-label {
+  position: absolute; font-family: var(--hud); font-size: 10.5px; letter-spacing: 0.24em;
+  text-transform: uppercase; color: var(--ink3); white-space: nowrap;
+}
+.ins-frame-label.tl { left: 18px; top: 16px; } .ins-frame-label.tr { right: 18px; top: 16px; }
+.ins-frame-label.bl { left: 18px; bottom: 16px; }
+@media (max-width: 479px) { .ins-frame-label.tr { display: none; } }
+.ins-fallback { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--lamp-deep); }
+
+/* Trackers: the field writes translate3d on each; the bracket centres on the point. */
+.ins-trackers { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.ins-track {
+  position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px;
+  opacity: 0; transition: opacity 600ms ease; will-change: transform;
+}
+.ins-bracket {
+  position: relative; width: 16px; height: 16px; margin: -8px 0 0 -8px; flex: none;
+  background:
+    linear-gradient(var(--ink2), var(--ink2)) left top / 5px 1px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) left top / 1px 5px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) right top / 5px 1px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) right top / 1px 5px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) left bottom / 5px 1px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) left bottom / 1px 5px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) right bottom / 5px 1px no-repeat,
+    linear-gradient(var(--ink2), var(--ink2)) right bottom / 1px 5px no-repeat;
+  opacity: 0.7;
+}
+.ins-bracket::after { content: ''; position: absolute; left: 7px; top: 7px; width: 2px; height: 2px; background: var(--ink); border-radius: 1px; }
+.ins-track-text {
+  margin-top: -8px; font-family: var(--hud); font-size: 10.5px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink2); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+@media (max-width: 959px) { .ins-track.is-wide { display: none; } }
+.ins.is-calm .ins-track { transition: none; }
+.ins-track[data-flip="1"] { flex-direction: row-reverse; }
+.ins-track[data-flip="1"] .ins-bracket { margin: -8px -8px 0 0; }
+
+/* ---------------------------------------------------------------- rail */
+.ins-rail { grid-area: rail; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 960px) { .ins-rail { grid-template-columns: 1fr; align-content: center; gap: 10px; } }
+.ins-tex {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; align-items: center;
+  min-height: 56px; padding: 8px 10px; border-radius: 14px;
+  background: transparent; border: 1px solid transparent; color: var(--ink2); cursor: pointer; text-align: left;
+  transition: transform 160ms var(--ease-out), border-color 200ms ease, color 200ms ease, background-color 200ms ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+}
+.ins-tex-glyph {
+  grid-row: 1 / span 2; display: grid; place-items: center; width: 44px; height: 44px;
+  border: 1px solid var(--hairline); border-radius: 10px; color: var(--ink2);
+}
+.ins-tex-num { font-family: var(--hud); font-size: 10.5px; letter-spacing: 0.2em; color: var(--ink3); }
+.ins-tex-label { font-family: var(--hud-strong); font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase; }
+.ins-tex.is-on { color: var(--ink); }
+.ins-tex.is-on .ins-tex-glyph { border-color: var(--lamp); color: var(--lamp); background: var(--lamp-glow); }
+@media (max-width: 959px) {
+  .ins-tex { grid-template-columns: 1fr; justify-items: center; text-align: center; row-gap: 6px; padding: 8px 4px; }
+  .ins-tex-glyph { grid-row: auto; }
+  .ins-tex-num { display: none; }
+  .ins-tex-label { font-size: 10.5px; letter-spacing: 0.16em; }
+}
+
+/* ---------------------------------------------------------------- strip */
+.ins-strip {
+  grid-area: strip; display: grid; gap: 16px; align-items: end;
+  grid-template-columns: 1fr;
+  grid-template-areas: "keys" "levels" "toggle" "dials" "calm";
+}
+@media (min-width: 960px) {
+  .ins-strip {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "keys dials levels calm";
+    column-gap: clamp(20px, 3vw, 48px);
+    padding-top: 8px;
+  }
+}
+.ins-keys { grid-area: keys; display: flex; gap: 8px; }
+@media (min-width: 960px) { .ins-keys { flex-direction: column; gap: 0; } }
+.ins-key {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px 0 0;
+  background: none; border: 0; color: var(--ink); cursor: pointer;
+  font-family: var(--hud); font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase;
+  transition: transform 160ms var(--ease-out), color 160ms ease;
+}
+.ins-key kbd { font-family: var(--hud); font-size: 10px; letter-spacing: 0.2em; color: var(--ink3); }
+@media (max-width: 959px) {
+  .ins-key { flex: 1; justify-content: center; padding: 0 12px; border: 1px solid var(--hairline-lit); border-radius: 999px; min-height: 48px; }
+  .ins-key kbd { display: none; }
+  .ins-key.is-listen { display: none; } /* the Listen button by the title is the one to reach for */
+}
+.ins-strip-label { font-family: var(--hud); font-size: 10.5px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink3); margin-right: 6px; }
+
+.ins-tune-toggle {
+  grid-area: toggle; display: inline-flex; align-items: center; justify-content: space-between;
+  min-height: 48px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--hairline);
+  background: none; color: var(--ink2); cursor: pointer;
+  font-family: var(--hud-strong); font-size: 11px; letter-spacing: 0.26em; text-transform: uppercase;
+  transition: transform 160ms var(--ease-out);
+}
+@media (min-width: 960px) { .ins-tune-toggle { display: none; } }
+
+.ins-dials { grid-area: dials; display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px 20px; }
+.ins-dials.is-open { display: grid; }
+@media (min-width: 960px) { .ins-dials { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px; } }
+.ins-dial { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ins-dial-head { display: flex; justify-content: space-between; gap: 8px; }
+.ins-dial-name { font-family: var(--hud); font-size: 10.5px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--ink3); }
+.ins-dial-value { font-family: var(--hud-strong); font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink2); white-space: nowrap; }
+
+/* A hairline track with a lamp dot, 44 px tall for touch. */
+.ins-dial input[type="range"] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer;
+  touch-action: pan-y;
+}
+.ins-dial input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(90deg, var(--lamp-deep) 0 var(--fill), var(--hairline-lit) var(--fill) 100%);
+}
+.ins-dial input[type="range"]::-moz-range-track { height: 1px; background: var(--hairline-lit); }
+.ins-dial input[type="range"]::-moz-range-progress { height: 1px; background: var(--lamp-deep); }
+.ins-dial input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 11px; height: 11px; margin-top: -5px; border-radius: 50%;
+  background: var(--ink); border: 0; box-shadow: 0 0 0 5px rgba(0, 0, 0, 0);
+  transition: transform 160ms var(--ease-out);
+}
+.ins-dial input[type="range"]::-moz-range-thumb { width: 11px; height: 11px; border-radius: 50%; background: var(--ink); border: 0; }
+.ins-dial input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25); }
+
+.ins-levels, .ins-calm { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.ins-levels { grid-area: levels; }
+.ins-calm { grid-area: calm; }
+.ins-opt {
+  min-height: 44px; padding: 0 10px; background: none; border: 0; cursor: pointer; color: var(--ink2);
+  font-family: var(--hud); font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 8px; text-decoration-thickness: 1px;
+  transition: transform 160ms var(--ease-out), color 200ms ease, text-decoration-color 200ms ease;
+}
+.ins-opt.is-on { color: var(--ink); text-decoration-color: var(--lamp); }
+
+/* ---------------------------------------------------------------- states */
+@media (hover: hover) and (pointer: fine) {
+  .ins-link:hover, .ins-key:hover, .ins-opt:hover { color: var(--ink); }
+  .ins-tex:hover { color: var(--ink); }
+  .ins-tex:hover .ins-tex-glyph { border-color: var(--hairline-lit); }
+  .ins-btn-primary:hover { background: color-mix(in srgb, var(--lamp) 88%, white); }
+  .ins-btn-ghost:hover { border-color: var(--ink3); }
+}
+.ins :focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: 8px; }
+.ins input[type="range"]:focus-visible { outline-offset: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ins, .ins-track { transition: opacity 200ms ease; }
+  .ins-btn:active, .ins-key:active, .ins-tex:active, .ins-opt:active, .ins-tune-toggle:active { transform: none; }
+}
+
+/* ---------------------------------------------------------------- the story below, in the same voice
+   The sections under the instrument keep their copy but take its labels: numbered, wide-tracked caps.
+   01 is the instrument itself, so the sections count on from 02. */
+.lp main { counter-reset: lpsec 1; }
+.lp .lp-section .lp-eyebrow {
+  font-family: 'Manrope_500Medium', 'Manrope', system-ui, sans-serif;
+  font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase;
+}
+.lp .lp-section .lp-eyebrow::before {
+  counter-increment: lpsec;
+  content: counter(lpsec, decimal-leading-zero) "  /  ";
+  color: var(--ink3);
+}
+.lp .lp-now { font-family: 'Manrope_300Light', 'Manrope', system-ui, sans-serif; letter-spacing: 0.2em; text-transform: uppercase; font-size: 11px; }

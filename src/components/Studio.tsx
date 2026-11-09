@@ -1,13 +1,16 @@
 // The sound studio: pick a texture and turn a few dials while your sound plays. Used by the
 // first-run setup and by the "My sound" tab. Every change saves at once and plays a moment later.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { recipeFor, type Intake, type Profile, type Tests } from '../lib/profile';
 import * as player from '../lib/player';
-import { colors } from '../lib/theme';
-import { Ionicons, tap, type IconName } from '../lib/ui';
+import { colors, radius, sceneFor, space } from '../lib/theme';
+import { ease, lum, timing } from '../lib/motion';
+import { Control, Ionicons, Press, Tile, useMaterial, useTablet, type IconName } from '../lib/ui';
 import { track } from '../lib/activity';
 import { Dial } from './Dial';
+import { RecipeArc } from './RecipeArc';
 
 export type Texture = NonNullable<Intake['texture']>;
 export const TEXTURES: { value: Texture; label: string; icon: IconName }[] = [
@@ -92,41 +95,22 @@ export function usePreview() {
   return { on, busy, start, stop, update, toggle: (p: Profile) => (live.current ? stop() : start(p)) };
 }
 
-/** Four texture tiles. Choosing one also starts it playing, so people choose by ear. */
+/** Four texture tiles, each a miniature of its room. Choosing one also starts it playing, so people choose by ear. */
 export function TextureTiles({ value, onPick }: { value: Texture | undefined; onPick: (t: Texture) => void }) {
+  const tablet = useTablet();
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }} accessibilityRole="radiogroup">
-      {TEXTURES.map(t => <Tile key={t.value} icon={t.icon} label={t.label} on={(value ?? 'rain') === t.value}
-        onPress={() => { track('texture_pick', { texture: t.value }); onPick(t.value); }} />)}
+    <View style={s.tiles} accessibilityRole="radiogroup" accessibilityLabel="Texture">
+      {TEXTURES.map(t => (
+        <Tile key={t.value} scene={sceneFor(t.value)} icon={t.icon} label={t.label} on={(value ?? 'rain') === t.value}
+          style={tablet ? s.tileQuarter : null}
+          onPress={() => { track('texture_pick', { texture: t.value }); onPick(t.value); }} />
+      ))}
     </View>
   );
 }
 
-/** A big, square, tappable choice with an icon. Springs a little when chosen. */
-export function Tile({ icon, label, sub, on, onPress, wide }: { icon: IconName; label: string; sub?: string; on: boolean; onPress: () => void; wide?: boolean }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const bounce = (to: number) => Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness: 8 }).start();
-  return (
-    <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: on }}
-      onPressIn={() => { tap(); bounce(0.95); }} onPressOut={() => bounce(1)} onPress={onPress}
-      style={{ flexBasis: wide ? '100%' : '46%', flexGrow: 1 }}>
-      <Animated.View style={{
-        transform: [{ scale }], borderRadius: 22, borderWidth: 1, padding: 16, gap: 10, minHeight: wide ? 0 : 104,
-        flexDirection: wide ? 'row' : 'column', alignItems: wide ? 'center' : 'flex-start', justifyContent: wide ? 'flex-start' : 'space-between',
-        borderColor: on ? 'rgba(169,199,155,0.65)' : colors.line, backgroundColor: on ? 'rgba(169,199,155,0.13)' : colors.surface,
-      }}>
-        <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? 'rgba(169,199,155,0.2)' : colors.surfaceStrong }}>
-          <Ionicons name={icon} size={20} color={on ? colors.accent : colors.moon} />
-        </View>
-        <View style={{ flex: wide ? 1 : 0, gap: 2 }}>
-          <Text style={{ color: colors.ink, fontSize: 16, fontWeight: '600' }}>{label}</Text>
-          {sub ? <Text style={{ color: colors.muted, fontSize: 12.5 }}>{sub}</Text> : null}
-        </View>
-        {on ? <Ionicons name="checkmark-circle" size={20} color={colors.accent} style={wide ? undefined : { position: 'absolute', top: 14, right: 14 }} /> : null}
-      </Animated.View>
-    </Pressable>
-  );
-}
+/** A big tappable choice (square, or a wide row). The shared primitive; kept under this name for older imports. */
+export { Tile };
 
 /** One dial bound to the profile. */
 export function ProfileDial({ which, profile, onChange, size, disabled }: { which: DialSpec['key']; profile: Profile; onChange: (p: Profile) => void; size?: number; disabled?: boolean }) {
@@ -141,14 +125,63 @@ export function ProfileDial({ which, profile, onChange, size, disabled }: { whic
   );
 }
 
-/** The round play/stop button for the studio. */
-export function PreviewButton({ on, busy, onPress }: { on: boolean; busy: boolean; onPress: () => void }) {
+const DISC = 112;
+const ARC = 150;
+const RING_IDLE = 0.35;
+const RING_ON = 0.9;
+const PREVIEW_FADE_IN_MS = 800;   // usePreview plays with fadeIn 0.8 s; the ring brightens at the same rate
+
+/**
+ * Listen: a 112 pt lamp-style button, the studio's one primary. The ring brightens as the preview fades in
+ * and settles back when it stops. Pass `arc` (the profile) to draw the Recipe Arc around it, as My sound does;
+ * `compact` gives a 48 pt pill for tight layouts.
+ */
+export function PreviewButton({ on, busy, onPress, arc, compact }: { on: boolean; busy: boolean; onPress: () => void; arc?: Profile; compact?: boolean }) {
+  const ring = useSharedValue(on ? RING_ON : RING_IDLE);
+  useEffect(() => {
+    cancelAnimation(ring);
+    // Brightness: never a spring. Up at the gain's own fade-in, down at least as slowly as the darker rule.
+    ring.set(on ? withTiming(RING_ON, { duration: PREVIEW_FADE_IN_MS, easing: ease.linear }) : withTiming(RING_IDLE, lum(timing.darker)));
+  }, [on, ring]);
+  const ringStyle = useAnimatedStyle(() => ({ opacity: ring.get() }));
+
+  const material = useMaterial();
+  const word = on ? (busy ? 'Tuning…' : 'Playing') : 'Listen';
+  const glyph: IconName = on ? 'pause' : 'play';
+  const a11y = { accessibilityRole: 'button' as const, accessibilityLabel: on ? 'Stop listening' : 'Listen', accessibilityState: { busy } };
+
+  if (compact) {
+    return (
+      <Press {...a11y} onPress={onPress} style={[s.pill, material.fill, on && s.pillOn, on && material.selected]}>
+        <Ionicons name={glyph} size={18} color={colors.lamp} />
+        <Control color={on ? colors.lamp : colors.ink}>{word}</Control>
+      </Press>
+    );
+  }
+
+  const box = arc ? ARC : DISC;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={on ? 'Stop listening' : 'Listen'} onPressIn={tap} onPress={onPress}
-      style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 22, borderRadius: 999,
-        backgroundColor: on ? colors.surfaceStrong : colors.accent, transform: [{ scale: pressed ? 0.96 : 1 }] })}>
-      <Ionicons name={on ? 'pause' : 'play'} size={18} color={on ? colors.ink : colors.bgTop} />
-      <Text style={{ color: on ? colors.ink : colors.bgTop, fontSize: 15.5, fontWeight: '600' }}>{on ? (busy ? 'Tuning…' : 'Playing') : 'Listen'}</Text>
-    </Pressable>
+    <View style={s.listen}>
+      <View style={{ width: box, height: box, alignItems: 'center', justifyContent: 'center' }}>
+        {arc ? <RecipeArc profile={arc} size={ARC} /> : null}
+        {/* A large lit surface: no reduced-motion opacity pulse on touch. */}
+        <Press {...a11y} onPress={onPress} largeSurface style={[s.disc, material.fill]}>
+          <Animated.View pointerEvents="none" style={[s.ring, ringStyle]} />
+          <Ionicons name={glyph} size={36} color={colors.lamp} style={on ? null : s.playNudge} />
+        </Press>
+      </View>
+      <Control color={on ? colors.lamp : colors.ink} center importantForAccessibility="no" accessibilityElementsHidden>{word}</Control>
+    </View>
   );
 }
+
+const s = StyleSheet.create({
+  tiles: { flexDirection: 'row', flexWrap: 'wrap', gap: space.m },
+  tileQuarter: { flexBasis: '22%' },
+  listen: { alignSelf: 'center', alignItems: 'center', gap: space.s },
+  disc: { width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: colors.smoke, borderWidth: 1, borderColor: colors.hairline, alignItems: 'center', justifyContent: 'center' },
+  ring: { position: 'absolute', top: -1, left: -1, right: -1, bottom: -1, borderRadius: DISC / 2, borderWidth: 2, borderColor: colors.lamp },
+  playNudge: { marginLeft: 3 },   // the play triangle's optical centre sits right of its box
+  pill: { flexDirection: 'row', alignSelf: 'center', alignItems: 'center', gap: space.s, minHeight: 48, paddingHorizontal: 22, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.smoke },
+  pillOn: { borderColor: colors.lampDeep, backgroundColor: colors.smokePressed },
+});

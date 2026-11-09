@@ -1,142 +1,183 @@
-// First-run setup: three taps and one dial, about 30 seconds. Every step can be skipped, and the
-// sound plays while you choose, so people decide by ear rather than by reading.
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+// First-run setup: three taps and one dial, about 30 seconds. A full-screen overlay over a live
+// Scene (rain until a texture is chosen), so the room is already there when the overlay lifts.
+// Every step can be skipped, and the sound plays while you choose, so people decide by ear.
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
+import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 import type { Profile } from '../lib/profile';
-import { colors, fonts } from '../lib/theme';
-import { Button, Ionicons, tap } from '../lib/ui';
+import { colors, sceneFor, z, type SceneTexture } from '../lib/theme';
+import { cross, ease, spring, timing, useReducedMotion } from '../lib/motion';
+import { useAppFonts } from '../lib/fonts';
+import { Control, Ionicons, Press, useGutter } from '../lib/ui';
 import { track } from '../lib/activity';
-import { PreviewButton, ProfileDial, TextureTiles, Tile, usePreview, withHardest, type Hardest } from './Studio';
+import { Scene } from './Scene';
+import { usePreview, withHardest, type Hardest } from './Studio';
+import { ProgressRail } from './onboarding/ProgressRail';
+import { DialPane, HardestPane, TexturePane, WelcomePane } from './onboarding/Panes';
 
-const HARDEST: { value: Hardest; label: string; sub: string; icon: 'sparkles-outline' | 'pulse-outline' | 'flash-outline' | 'ellipse-outline' }[] = [
-  { value: 'high', label: 'Hiss and high sounds', sub: 'Kettles, static, squeaks', icon: 'sparkles-outline' },
-  { value: 'low', label: 'Low rumble', sub: 'Traffic, fridges, engines', icon: 'pulse-outline' },
-  { value: 'sudden', label: 'Sudden noises', sub: 'Doors, alerts, dropped things', icon: 'flash-outline' },
-  { value: 'unsure', label: 'Not sure', sub: 'Start with something gentle', icon: 'ellipse-outline' },
-];
+const PANES = 4;
+const RISE = 12;          // the incoming pane settles up by this much
+const ADVANCE_MS = 260;   // let the chosen tile show its check before pane 1 moves on
+const LEAVE_MS = 500;     // the overlay lifts to reveal the lamp already in place
 
-export function Onboarding({ profile, onChange, onDone }: { profile: Profile; onChange: (p: Profile) => void; onDone: () => void }) {
+export function Onboarding({ profile, onChange, onSaved, onDone }: {
+  profile: Profile; onChange: (p: Profile) => void;
+  /** The moment setup ends (saved or skipped), before the fade: record it then, not after an animation that may never finish. */
+  onSaved?: () => void;
+  /** Once the overlay has faded away. */
+  onDone: () => void;
+}) {
   const [step, setStep] = useState(0);
   const [hardest, setHardest] = useState<Hardest | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const preview = usePreview();
-  const enter = useRef(new Animated.Value(1)).current;
+  const gutter = useGutter();
+  const advance = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const left = useRef(false);
+  const done = useRef(onDone);
+  done.current = onDone;
+  const veil = useSharedValue(1);
+  // Text stays invisible until the bundled fonts resolve, then crosses in; the Scene paints at once.
+  const { ready } = useAppFonts();
+  const ink = useSharedValue(ready ? 1 : 0);
+  useEffect(() => { if (ready) ink.set(withTiming(1, cross(timing.crossfadeIn))); }, [ready, ink]);
 
-  // Each step glides up and fades in, like a sheet settling.
-  useEffect(() => {
-    enter.setValue(0);
-    Animated.spring(enter, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 4 }).start();
-  }, [step]);
+  useEffect(() => () => { if (advance.current) clearTimeout(advance.current); }, []);
 
   const update = (p: Profile) => { onChange(p); preview.update(p); };
   const go = (n: number) => { track('onboarding_step', { step: n }); setStep(n); };
-  const finish = (how: 'done' | 'skipped') => { preview.stop(); track('onboarding_done', { how, step }); onDone(); };
+  const leave = useCallback(() => done.current(), []);
+  // Stop the preview, then the haptic (nothing buzzes while sound plays), then lift the overlay.
+  const finish = (how: 'done' | 'skipped') => {
+    if (left.current) return;
+    left.current = true;
+    preview.stop();
+    track('onboarding_done', { how, step });
+    onSaved?.();
+    if (how === 'done') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setLeaving(true);
+    cancelAnimation(veil);
+    veil.set(withTiming(0, { duration: LEAVE_MS, easing: ease.exit }, finished => { if (finished) scheduleOnRN(leave); }));
+  };
 
-  const body = [
-    // 0 · Welcome
-    <View key="w" style={{ flex: 1, justifyContent: 'center', gap: 28 }}>
-      <BreathingOrb />
-      <View style={{ gap: 10 }}>
-        <Text style={{ color: colors.ink, fontFamily: fonts.display, fontSize: 44, letterSpacing: -0.8, textAlign: 'center' }}>Still</Text>
-        <Text style={{ color: colors.muted, fontSize: 17, lineHeight: 25, textAlign: 'center' }}>A soft sound for migraine days.{'\n'}Made on your phone, just for you.</Text>
-      </View>
-    </View>,
-    // 1 · One question
-    <View key="q" style={{ gap: 14 }}>
-      <Title kicker="1 of 3" title="What's hardest on your ears?" sub="During a headache. Pick one." />
-      {HARDEST.map(h => (
-        <Tile key={h.value} wide icon={h.icon} label={h.label} sub={h.sub} on={hardest === h.value}
-          onPress={() => { setHardest(h.value); update(withHardest(profile, h.value)); setTimeout(() => go(2), 260); }} />
-      ))}
-    </View>,
-    // 2 · Texture, by ear
-    <View key="t" style={{ gap: 18 }}>
-      <Title kicker="2 of 3" title="Pick what feels restful" sub="Tap one to hear it. Use headphones if you can." />
-      <TextureTiles value={profile.intake.texture} onPick={t => {
-        const next = { ...profile, intake: { ...profile.intake, texture: t } };
-        onChange(next);
-        if (preview.on) preview.update(next); else preview.start(next);
-      }} />
-      <PreviewButton on={preview.on} busy={preview.busy} onPress={() => preview.toggle(profile)} />
-    </View>,
-    // 3 · One dial
-    <View key="d" style={{ gap: 22, alignItems: 'center' }}>
-      <Title kicker="3 of 3" title="Turn it to taste" sub="Drag the dial, or tap it. Deeper is usually calmer." />
-      <ProfileDial which="tone" profile={profile} onChange={update} size={176} />
-      <PreviewButton on={preview.on} busy={preview.busy} onPress={() => preview.toggle(profile)} />
-    </View>,
-  ][step];
+  const pickHardest = (h: Hardest) => {
+    setHardest(h);
+    update(withHardest(profile, h));
+    if (advance.current) clearTimeout(advance.current);
+    advance.current = setTimeout(() => go(2), ADVANCE_MS);
+  };
+  const pickTexture = (t: NonNullable<Profile['intake']['texture']>) => {
+    const next = { ...profile, intake: { ...profile.intake, texture: t } };
+    onChange(next);
+    if (preview.on) preview.update(next); else preview.start(next);
+  };
 
-  const primary = step === 0 ? { label: 'Make my sound', go: () => go(1) }
-    : step === 1 ? { label: 'Continue', go: () => { if (!hardest) update(withHardest(profile, 'unsure')); go(2); } }
-    : step === 2 ? { label: 'Continue', go: () => { if (!preview.on) preview.start(profile); go(3); } }
-    : { label: 'Save my sound', go: () => finish('done') };
+  const renderPane = (n: number): ReactNode => {
+    switch (n) {
+      case 0: return <WelcomePane onStart={() => go(1)} onSkip={() => finish('skipped')} />;
+      case 1: return <HardestPane value={hardest} onPick={pickHardest} onContinue={() => { if (!hardest) update(withHardest(profile, 'unsure')); go(2); }} />;
+      case 2: return <TexturePane profile={profile} preview={preview} onPick={pickTexture} onContinue={() => { if (!preview.on) preview.start(profile); go(3); }} />;
+      default: return <DialPane profile={profile} preview={preview} onChange={update} onSave={() => finish('done')} />;
+    }
+  };
+
+  // The room shows rain until a texture is chosen; Scene cross-fades the change itself.
+  const scene: SceneTexture = profile.intake.texture ? sceneFor(profile.intake.texture) : 'rain';
+  const fade = useAnimatedStyle(() => ({ opacity: veil.get() }));
+  const fontFade = useAnimatedStyle(() => ({ opacity: ink.get() }));
 
   return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.bg }}>
-      <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
-      <SafeAreaView style={{ flex: 1 }}>
-        <View style={{ flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 22, paddingTop: 8, paddingBottom: 20 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
-            {step > 0
-              ? <Pressable accessibilityRole="button" accessibilityLabel="Back" onPressIn={tap} onPress={() => go(step - 1)} hitSlop={12}><Ionicons name="chevron-back" size={24} color={colors.muted} /></Pressable>
-              : <View />}
-            <Dots step={step} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Skip setup" onPressIn={tap} onPress={() => finish('skipped')} hitSlop={12}>
-              <Text style={{ color: colors.muted, fontSize: 15 }}>Skip</Text>
-            </Pressable>
+    // While it fades it still blocks the room beneath (a tap there would start the lamp mid-fade), but
+    // its own controls are already done: box-only takes the touch and gives it to nothing.
+    <Animated.View style={[styles.root, fade]} pointerEvents={leaving ? 'box-only' : 'auto'}>
+      <Scene texture={scene} depth={1} />
+      <SafeAreaView style={styles.fill} edges={['top', 'bottom']}>
+        <Animated.View style={[styles.column, { paddingHorizontal: gutter }, fontFade]}>
+          <View style={styles.top}>
+            {step > 0 ? (
+              <Press accessibilityLabel="Back" hitSlop={12} onPress={() => go(step - 1)} style={styles.back}>
+                <Ionicons name="chevron-back" size={24} color={colors.ink2} />
+              </Press>
+            ) : <View style={styles.back} />}
+            <ProgressRail step={step} total={PANES} />
+            <Press accessibilityLabel="Skip setup" hitSlop={12} onPress={() => finish('skipped')} style={styles.skip}>
+              <Control color={colors.ink2}>Skip</Control>
+            </Press>
           </View>
-          <Animated.View style={{ flex: 1, justifyContent: step === 0 ? 'center' : 'flex-start', paddingTop: step === 0 ? 0 : 18,
-            opacity: enter, transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) }] }}>
-            {body}
-          </Animated.View>
-          <View style={{ gap: 6 }}>
-            <Button kind="primary" label={primary.label} onPress={primary.go} />
-            {step === 0 && <Button kind="quiet" label="Just play a gentle sound" onPress={() => finish('skipped')} />}
-          </View>
-        </View>
+          <PaneStage step={step} render={renderPane} />
+        </Animated.View>
       </SafeAreaView>
-    </View>
+    </Animated.View>
   );
 }
 
-function Title({ kicker, title, sub }: { kicker: string; title: string; sub: string }) {
+// ---------------------------------------------------------------------------------------------
+// PaneStage: cross-fades panes. The incoming pane mounts at opacity 0 and rises 12 pt into place;
+// the outgoing one is kept as a non-interactive ghost over it for 160 ms. The swap happens in the
+// same render the step changes, so no frame shows the new pane before its fade begins.
+
+type Stage = { shown: number; ghost: number | null; gen: number };
+
+function PaneStage({ step, render }: { step: number; render: (step: number) => ReactNode }) {
+  const reduced = useReducedMotion();
+  const [stage, setStage] = useState<Stage>({ shown: step, ghost: null, gen: 0 });
+  const current: Stage = stage.shown === step ? stage : { shown: step, ghost: stage.shown, gen: stage.gen + 1 };
+  if (stage.shown !== step) setStage(current);
+  const clearGhost = useCallback((gen: number) => setStage(s => (s.gen === gen && s.ghost != null ? { ...s, ghost: null } : s)), []);
+
+  // Scrolling only engages when the pane outgrows the stage (large type), so the dial's drag is not fought.
+  const [viewH, setViewH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+
   return (
-    <View style={{ gap: 6, alignSelf: 'stretch' }}>
-      <Text style={{ color: colors.accent, fontSize: 12, letterSpacing: 1.6, textTransform: 'uppercase' }}>{kicker}</Text>
-      <Text style={{ color: colors.ink, fontFamily: fonts.display, fontSize: 30, letterSpacing: -0.4, lineHeight: 36 }}>{title}</Text>
-      <Text style={{ color: colors.muted, fontSize: 15.5, lineHeight: 22 }}>{sub}</Text>
-    </View>
+    <ScrollView style={styles.fill} contentContainerStyle={styles.stage} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+      scrollEnabled={contentH > viewH + 1} onLayout={e => setViewH(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => setContentH(h)}>
+      <PaneIn key={`in-${current.shown}`} reduced={reduced}>{render(current.shown)}</PaneIn>
+      {current.ghost != null ? (
+        <PaneOut key={`out-${current.gen}`} onGone={() => clearGhost(current.gen)}>{render(current.ghost)}</PaneOut>
+      ) : null}
+    </ScrollView>
   );
 }
 
-function Dots({ step }: { step: number }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 6 }} accessibilityLabel={`Step ${step + 1} of 4`}>
-      {[0, 1, 2, 3].map(i => <View key={i} style={{ width: i === step ? 18 : 6, height: 6, borderRadius: 3, backgroundColor: i <= step ? colors.accent : 'rgba(255,255,255,0.14)' }} />)}
-    </View>
-  );
-}
-
-/** A slow glow, about six breaths a minute. */
-function BreathingOrb() {
-  const breath = useRef(new Animated.Value(0)).current;
+function PaneIn({ children, reduced }: { children: ReactNode; reduced: boolean }) {
+  const opacity = useSharedValue(0);
+  const rise = useSharedValue(reduced ? 0 : RISE);
   useEffect(() => {
-    const loop = Animated.loop(Animated.sequence([
-      Animated.timing(breath, { toValue: 1, duration: 4500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      Animated.timing(breath, { toValue: 0, duration: 5500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-    ]));
-    loop.start();
-    return () => loop.stop();
-  }, []);
+    opacity.set(withTiming(1, cross(timing.crossfadeIn)));
+    if (reduced) rise.set(0); else rise.set(withSpring(0, spring.settle));
+  }, [opacity, rise, reduced]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get(), transform: [{ translateY: rise.get() }] }));
+  return <Animated.View style={[styles.pane, style]}>{children}</Animated.View>;
+}
+
+function PaneOut({ children, onGone }: { children: ReactNode; onGone: () => void }) {
+  const opacity = useSharedValue(1);
+  const gone = useRef(onGone);
+  gone.current = onGone;
+  const fire = useCallback(() => gone.current(), []);
+  useEffect(() => {
+    opacity.set(withTiming(0, { duration: timing.crossfadeOut, easing: ease.exit }, finished => { if (finished) scheduleOnRN(fire); }));
+  }, [opacity, fire]);
+  const style = useAnimatedStyle(() => ({ opacity: opacity.get() }));
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', height: 200 }}>
-      <Animated.View style={{ position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(160,190,150,0.10)',
-        opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.8] }), transform: [{ scale: breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.06] }) }] }} />
-      <View style={{ width: 132, height: 132, borderRadius: 66, backgroundColor: 'rgba(160,190,150,0.08)', borderWidth: 1, borderColor: 'rgba(160,190,150,0.22)', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="moon-outline" size={36} color={colors.moon} />
-      </View>
-    </View>
+    <Animated.View pointerEvents="none" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden
+      style={[StyleSheet.absoluteFill, styles.pane, style]}>
+      {children}
+    </Animated.View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: z.setup, backgroundColor: colors.night },
+  fill: { flex: 1, zIndex: z.content },
+  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 8, paddingBottom: 20 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  skip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4 },
+  stage: { flexGrow: 1 },
+  pane: { flex: 1 },
+});

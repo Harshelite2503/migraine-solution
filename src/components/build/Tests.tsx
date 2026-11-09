@@ -1,18 +1,21 @@
 // Six focused listening tests. Each one changes a single quality while everything else stays at
 // your current best recipe, plays the two versions at matched loudness, and narrows in on what
 // feels calmest (an adaptive two-choice search). Results feed straight into your recipe.
+// Shown as a small ritual: two round pads whose rims fill as each version plays, then become the answers.
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { TESTS, startStaircase, pairFor, answer, result } from '../../recipe/staircase.js';
 import { recipeFor, type Profile, type Tests as TestsT } from '../../lib/profile';
 import * as player from '../../lib/player';
-import { Button, Muted } from '../../lib/ui';
-import { colors } from '../../lib/theme';
+import { Body, Button, Caption, Chip, Eyebrow, Heading, Status } from '../../lib/ui';
+import { colors, space } from '../../lib/theme';
 import { track } from '../../lib/activity';
+import { RoundPad, type PadState } from './RoundPad';
 
 type Props = { profile: Profile; onChange: (p: Profile) => void; keys?: string[] };
 type Stair = ReturnType<typeof startStaircase>;
 const CLIP_MS = 6000;
+const LONG_CLIP_MS = 12000;
 
 export function Tests({ profile, onChange, keys }: Props) {
   const set = keys ? TESTS.filter(t => keys.includes(t.key)) : TESTS;
@@ -23,6 +26,8 @@ export function Tests({ profile, onChange, keys }: Props) {
   const [flip, setFlip] = useState(false);       // whether A is the higher value this round
   const [heard, setHeard] = useState(false);
   const [now, setNow] = useState<'a' | 'b' | null>(null);
+  const [rim, setRim] = useState<'a' | 'b' | null>(null);   // whose clip is audibly playing, for the rim fill
+  const [glow, setGlow] = useState({ a: 0, b: 0 });
   const [status, setStatus] = useState('');
   const run = useRef(0);
   useEffect(() => () => { run.current++; player.stop(0.3); }, []);
@@ -37,7 +42,7 @@ export function Tests({ profile, onChange, keys }: Props) {
   }, [test?.key, stair?.trials]);
 
   if (!test || !stair) {
-    return <Muted>Done. Your sound now uses what you chose. You can redo these any time.</Muted>;
+    return <Body color={colors.ink2}>Done. Your sound now uses what you chose. You can redo these any time.</Body>;
   }
 
   const variant = (value: number) => {
@@ -52,10 +57,14 @@ export function Tests({ profile, onChange, keys }: Props) {
     return r;
   };
 
+  const long = test.key === 'swellDb';
+  const clipMs = long ? LONG_CLIP_MS : CLIP_MS;
+
   const playRound = async () => {
     const mine = ++run.current;
     const [lo, hi] = pairFor(test, stair);
     const order = flip ? [hi, lo] : [lo, hi];
+    setRim(null);
     setStatus('Preparing two sounds…');
     const long = test.key === 'swellDb';
     const uris = [await player.recipeFile(variant(order[0]), true, long), await player.recipeFile(variant(order[1]), true, long)];
@@ -63,14 +72,17 @@ export function Tests({ profile, onChange, keys }: Props) {
       if (mine !== run.current) return;
       setNow(which); setStatus(`Playing ${which.toUpperCase()}…`);
       await player.play(uris[i], { levelDb: Math.min(0, profile.baseLevelDb), fadeIn: 0.05, loop: false, title: `Sound ${which.toUpperCase()}` });
-      await new Promise(r => setTimeout(r, long ? 12000 : CLIP_MS));
+      // The rim starts filling once the clip is actually sounding.
+      if (mine === run.current) setRim(which);
+      await new Promise(r => setTimeout(r, long ? LONG_CLIP_MS : CLIP_MS));
     }
     if (mine !== run.current) return;
-    player.stop(0.2); setNow(null); setHeard(true); setStatus(test.question);
+    player.stop(0.2); setNow(null); setRim(null); setHeard(true); setStatus(test.question);
   };
 
   const choose = (c: 'a' | 'b' | 'same' | 'neither') => {
-    run.current++; player.stop(0.3); setNow(null);
+    run.current++; player.stop(0.3); setNow(null); setRim(null);
+    if (c === 'a' || c === 'b') setGlow(g => ({ ...g, [c]: g[c] + 1 }));
     const mapped = c === 'same' || c === 'neither' ? c : (c === 'a') !== flip ? 'lower' : 'higher';
     const next = answer(test, stair, mapped as any);
     track('test_answer', { test: test.key, choice: String(mapped), round: stair.trials + 1 });
@@ -85,27 +97,52 @@ export function Tests({ profile, onChange, keys }: Props) {
     }
   };
 
+  const stop = () => { run.current++; player.stop(0.4); setNow(null); setRim(null); setStatus('Stopped. Quiet is a valid choice.'); };
+
+  // The pad sounding fills; a pad already heard (this pass or the last) rests full; otherwise empty.
+  const padState = (w: 'a' | 'b'): PadState =>
+    rim === w ? 'playing' : heard || (w === 'a' && rim === 'b') ? 'played' : 'idle';
+
   return (
-    <View style={{ gap: 10 }}>
-      <Muted small>Test {set.indexOf(test) + 1} of {set.length} · round {stair.trials + 1} of {test.rounds}. Use headphones if you can.</Muted>
-      <Text style={{ color: colors.ink, fontSize: 18 }}>{test.title}</Text>
-      <Muted>Two versions play, A then B. Pick the calmer one.</Muted>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+    <View style={s.wrap}>
+      <View style={s.head}>
+        <Eyebrow>Test {set.indexOf(test) + 1} of {set.length} · round {stair.trials + 1} of {test.rounds}</Eyebrow>
+        {/* Round ticks: done rounds lit. Decoration; the Eyebrow says the same in words. */}
+        <View style={s.ticks} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" aria-hidden>
+          {Array.from({ length: test.rounds }, (_, i) => (
+            <View key={i} style={[s.tick, { backgroundColor: i < stair.trials ? colors.lamp : colors.lampDeep }]} />
+          ))}
+        </View>
+      </View>
+      <Heading>{test.title}</Heading>
+      <Body color={colors.ink2}>Two versions play, A then B. Pick the calmer one.</Body>
+      <Caption>Use headphones if you can.</Caption>
+
+      <View style={s.pads}>
         {(['a', 'b'] as const).map(w => (
-          <View key={w} style={{ flex: 1, borderWidth: 1, borderColor: now === w ? colors.ink : colors.line, borderRadius: 12, padding: 16, alignItems: 'center' }}>
-            <Text style={{ color: colors.ink, fontSize: 26 }}>{w.toUpperCase()}</Text>
-          </View>
+          <RoundPad key={w} letter={w === 'a' ? 'A' : 'B'} state={padState(w)} clipMs={clipMs}
+            answer={heard} onPress={() => choose(w)} glow={glow[w]} />
         ))}
       </View>
-      <Button kind="primary" label={now ? 'Playing…' : heard ? '▶  Play again' : '▶  Play A then B'} onPress={playRound} disabled={!!now} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Button label="A felt calmer" onPress={() => choose('a')} disabled={!heard} style={{ flexBasis: '48%', flexGrow: 1 }} />
-        <Button label="B felt calmer" onPress={() => choose('b')} disabled={!heard} style={{ flexBasis: '48%', flexGrow: 1 }} />
-        <Button label="About the same" onPress={() => choose('same')} disabled={!heard} style={{ flexBasis: '48%', flexGrow: 1 }} />
-        <Button label="Both unpleasant" onPress={() => choose('neither')} disabled={!heard && !now} style={{ flexBasis: '48%', flexGrow: 1 }} />
+
+      <Status>{status}</Status>
+
+      <Button kind="primary" icon="play" label={now ? 'Playing…' : heard ? 'Play again' : 'Play A then B'} onPress={playRound} disabled={!!now} />
+      <View style={s.chips}>
+        <Chip label="About the same" onPress={() => choose('same')} disabled={!heard} style={s.chip} />
+        <Chip label="Both unpleasant" onPress={() => choose('neither')} disabled={!heard && !now} style={s.chip} />
       </View>
-      <Button kind="quiet" label="■  Stop" onPress={() => { run.current++; player.stop(0.4); setNow(null); setStatus('Stopped. Quiet is a valid choice.'); }} />
-      {status ? <Muted>{status}</Muted> : null}
+      <Button kind="quiet" icon="stop" label="Stop" onPress={stop} />
     </View>
   );
 }
+
+const s = StyleSheet.create({
+  wrap: { gap: space.m },
+  head: { gap: space.s },
+  ticks: { flexDirection: 'row', gap: 6 },
+  tick: { width: 6, height: 6, borderRadius: 3 },
+  pads: { flexDirection: 'row', justifyContent: 'center', gap: space.xl, paddingVertical: space.s },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
+  chip: { flexBasis: '45%', flexGrow: 1 },
+});

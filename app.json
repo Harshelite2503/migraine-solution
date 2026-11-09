@@ -7,27 +7,47 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#0b100d",
-    "splash": { "backgroundColor": "#0b100d" },
+    "backgroundColor": "#0B0D12",
+    "splash": {
+      "backgroundColor": "#0B0D12"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.stillsoundlab.still",
-      "infoPlist": { "UIBackgroundModes": ["audio"] }
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
     },
     "android": {
       "package": "com.stillsoundlab.still",
       "adaptiveIcon": {
-        "backgroundColor": "#0f1713",
+        "backgroundColor": "#0B0D12",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": { "favicon": "./assets/favicon.png" },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "themeColor": "#0B0D12",
+      "backgroundColor": "#0B0D12",
+      "name": "Still",
+      "description": "A quiet room for migraine days."
+    },
     "plugins": [
       "expo-router",
-      ["expo-audio", { "microphonePermission": false, "recordAudioAndroid": false, "enableBackgroundPlayback": true }]
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": true
+        }
+      ],
+      "expo-font"
     ]
   }
 }
