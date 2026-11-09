@@ -61,6 +61,8 @@ export async function recipeFile(recipe: RecipeLike, clip = false, longClip = fa
 type WarmItem = RecipeLike | { recipe: RecipeLike; clip: boolean; long?: boolean };
 let warmQueue: WarmItem[] = [];
 let warming = false;
+/** Drop queued background renders, so nothing heavy starts while a person is starting or stopping a sound. */
+export function cancelPrewarm() { warmQueue = []; }
 export function prewarm(recipes: WarmItem[], delayMs = 700) {
   warmQueue = [...recipes];
   if (warming) return;

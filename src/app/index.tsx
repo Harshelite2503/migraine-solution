@@ -106,6 +106,7 @@ export default function QuietRoom() {
   const playSound = async (choice: 'comfort' | 'softer') => {
     const r = recipes[choice];
     // Update the screen first; finish the bookkeeping and loading after.
+    player.cancelPrewarm(); // never let a background render block the stop button
     setPlaying(choice); setCheckFor(null); setPreparing(true); setStatus('');
     const previous = live.current; live.current = null;
     if (previous) { live.current = previous; end({ ask: false }); }
@@ -123,7 +124,10 @@ export default function QuietRoom() {
     setStatus('Fading in. It keeps playing if you lock the phone.');
   };
 
-  const stopSound = () => { player.stop(3); setPlaying(null); setPreparing(false); setStatus('Fading to silence.'); end(); };
+  const stopSound = () => {
+    player.stop(3); setPlaying(null); setPreparing(false); setStatus('Fading to silence.'); end();
+    player.prewarm([recipes.comfort, recipes.softer], 8000); // get Softer ready again once things are quiet
+  };
   const darkOnly = () => { player.stop(2); setPlaying(null); end({ ask: false }); setCheckFor(null); begin('silence', null); setDark(true); };
   const leaveDark = () => { setDark(false); if (live.current?.choice === 'silence') end(); };
 
