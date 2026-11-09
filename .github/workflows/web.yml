@@ -1,0 +1,69 @@
+name: Web app
+
+# Builds the web version of Still on every change; publishes it to the Azure Storage static
+# website on main. Same keyless GitHub sign-in to Azure as the review server deploy.
+on:
+  push:
+    branches: [main]
+    paths: ['src/**', 'assets/**', 'app.json', 'package.json', 'package-lock.json', 'scripts/privacy-html.mjs', '.github/workflows/web.yml']
+  pull_request:
+    paths: ['src/**', 'assets/**', 'app.json', 'package.json', 'package-lock.json', 'scripts/privacy-html.mjs', '.github/workflows/web.yml']
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AZURE_CLIENT_ID: c3c6b1cc-16d8-4144-a2b9-71533348d631
+  AZURE_TENANT_ID: c8f2e123-9b86-471f-b7e8-e8871582d4e4
+  AZURE_SUBSCRIPTION_ID: 4b37c323-30b2-4684-88ff-ba5cdc3467f9
+  WEB_STORAGE_ACCOUNT: stillweb6afac7
+  AZURE_RESOURCE_GROUP: still-review-rg
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - name: Build the web app
+        run: |
+          npx expo export --platform web --output-dir dist-web
+          node scripts/privacy-html.mjs dist-web/privacy.html
+      - uses: azure/login@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Publish to the static website
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Prefer data-plane sign-in; fall back to the account key if this identity can read it.
+          AUTH=(--auth-mode login)
+          if ! az storage container show --account-name "$WEB_STORAGE_ACCOUNT" -n '$web' "${AUTH[@]}" -o none 2>/dev/null; then
+            KEY=$(az storage account keys list -g "$AZURE_RESOURCE_GROUP" -n "$WEB_STORAGE_ACCOUNT" --query '[0].value' -o tsv)
+            AUTH=(--account-key "$KEY")
+          fi
+          az storage blob upload-batch --account-name "$WEB_STORAGE_ACCOUNT" -d '$web' -s dist-web --overwrite --only-show-errors -o none "${AUTH[@]}"
+          for route in tune journal; do
+            az storage blob upload --account-name "$WEB_STORAGE_ACCOUNT" -c '$web' -n "$route" -f dist-web/index.html --content-type text/html --overwrite --only-show-errors -o none "${AUTH[@]}"
+          done
+      - name: Check the live site
+        if: github.ref == 'refs/heads/main'
+        run: |
+          URL="https://$WEB_STORAGE_ACCOUNT.z20.web.core.windows.net"
+          for i in 1 2 3 4 5; do
+            JS=$(curl -fsS "$URL/" | grep -o '/_expo/static/js/web/[^"]*\.js' | head -1) || true
+            if [ -n "$JS" ] && curl -fsS "$URL$JS" | grep -q "Make my sound"; then echo "Live: $URL"; exit 0; fi
+            sleep 15
+          done
+          echo "The live site does not show the new version yet"; exit 1
