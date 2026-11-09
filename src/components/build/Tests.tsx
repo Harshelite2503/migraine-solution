@@ -14,13 +14,10 @@ type Props = { profile: Profile; onChange: (p: Profile) => void; keys?: string[]
 type Stair = ReturnType<typeof startStaircase>;
 const CLIP_MS = 6000;
 
-const fmt = (key: string, v: number) =>
-  key === 'tilt' ? `${v.toFixed(1)} dB/octave` : key === 'cutoff' || key === 'humHz' ? `${v.toFixed(key === 'humHz' ? 1 : 0)} Hz`
-    : key === 'swellDb' ? `${v.toFixed(1)} dB` : `${Math.round(v * 100)}%`;
-
 export function Tests({ profile, onChange, keys }: Props) {
   const set = keys ? TESTS.filter(t => keys.includes(t.key)) : TESTS;
-  const pending = set.filter(t => !(profile.tests as any)[t.key] && !t.skipIf?.(profile.tests, profile.intake));
+  // A setting turned on a dial (trials: 0) has not been compared by ear yet, so it still counts as to do.
+  const pending = set.filter(t => !((profile.tests as any)[t.key]?.trials > 0) && !t.skipIf?.(profile.tests, profile.intake));
   const test = pending[0];
   const [stair, setStair] = useState<Stair | null>(test ? startStaircase(test) : null);
   const [flip, setFlip] = useState(false);       // whether A is the higher value this round
@@ -81,7 +78,7 @@ export function Tests({ profile, onChange, keys }: Props) {
     if (next.done) {
       const res = result(next);
       onChange({ ...profile, tests: { ...profile.tests, [test.key]: res } as TestsT });
-      setStatus(`${test.title}: ${test.describe(res.value)} (${fmt(test.key, res.value)}). Saved.`);
+      setStatus(`${test.title}: ${test.describe(res.value)}. Saved.`);
     } else {
       setStair(next);
       setStatus('Noted. Play the next pair when you are ready.');
@@ -92,7 +89,7 @@ export function Tests({ profile, onChange, keys }: Props) {
     <View style={{ gap: 10 }}>
       <Muted small>Test {set.indexOf(test) + 1} of {set.length} · round {stair.trials + 1} of {test.rounds}. Use headphones if you can.</Muted>
       <Text style={{ color: colors.ink, fontSize: 18 }}>{test.title}</Text>
-      <Muted>Two versions play, A then B. Only one quality changes. Pick the one that feels calmer.</Muted>
+      <Muted>Two versions play, A then B. Pick the calmer one.</Muted>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {(['a', 'b'] as const).map(w => (
           <View key={w} style={{ flex: 1, borderWidth: 1, borderColor: now === w ? colors.ink : colors.line, borderRadius: 12, padding: 16, alignItems: 'center' }}>

@@ -34,3 +34,12 @@ export async function loadProfile(): Promise<Profile> {
 export async function saveProfile(profile: Profile): Promise<boolean> {
   try { await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); return true; } catch { return false; }
 }
+
+const ONBOARDED_KEY = 'still.onboarded';
+/** Whether the person has finished (or skipped) the first-run setup. */
+export async function loadOnboarded(): Promise<boolean> {
+  try { return (await AsyncStorage.getItem(ONBOARDED_KEY)) === '1'; } catch { return true; }
+}
+export async function saveOnboarded(done: boolean): Promise<void> {
+  try { if (done) await AsyncStorage.setItem(ONBOARDED_KEY, '1'); else await AsyncStorage.removeItem(ONBOARDED_KEY); } catch {}
+}

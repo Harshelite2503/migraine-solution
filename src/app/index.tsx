@@ -7,20 +7,22 @@ import { useFocusEffect, useNavigation } from 'expo-router';
 import { applyAdjustments } from '../recipe/recipe.js';
 import { clampRecipe } from '../recipe/bounds.js';
 import { pendingFollowUp } from '../engine/journal-store.js';
-import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
-import { loadJournal, loadProfile, loadQuietMode, saveJournal, saveProfile, saveQuietMode, type Session } from '../lib/storage';
+import { freshProfile, lowerState, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
+import { loadJournal, loadOnboarded, loadProfile, loadQuietMode, saveJournal, saveOnboarded, saveProfile, saveQuietMode, type Session } from '../lib/storage';
+import { Onboarding } from '../components/Onboarding';
+import { textureName } from '../components/Studio';
 import * as player from '../lib/player';
 import { loadActivity, summarize, track } from '../lib/activity';
-import { Button, Card, Ionicons, Muted, Screen, Segmented, tap, tick, type IconName, Columns, useWide } from '../lib/ui';
+import { Button, Card, Ionicons, Screen, Segmented, tap, tick, type IconName, Columns, useWide } from '../lib/ui';
 import { colors, tabBarStyle } from '../lib/theme';
 
 type Choice = Session['choice'];
 type Live = { id: string; at: string; state: State; choice: Choice; startMs: number; levelDb: number | null; worse: boolean };
 // Named by how they sound, not by a diagnosis: people pick whichever feels best right now.
 const STATES: { value: State; label: string; icon: IconName; short: string }[] = [
-  { value: 'attack', label: 'Hushed', icon: 'moon-outline', short: 'Hushed: quietest and darkest' },
-  { value: 'warning', label: 'Gentle', icon: 'cloudy-outline', short: 'Gentle: a little quieter' },
-  { value: 'normal', label: 'Full', icon: 'sunny-outline', short: 'Full: richest, normal volume' },
+  { value: 'attack', label: 'Hushed', icon: 'moon-outline', short: 'Quietest' },
+  { value: 'warning', label: 'Gentle', icon: 'cloudy-outline', short: 'A little quieter' },
+  { value: 'normal', label: 'Full', icon: 'sunny-outline', short: 'Normal volume' },
 ];
 const TIMERS = ['30', '60', '15', '0'];
 const AUTO_DIM_MS = 15000;
@@ -36,7 +38,7 @@ export default function QuietRoom() {
   const [dark, setDark] = useState(false);
   const [checkFor, setCheckFor] = useState<string | null>(null);
   const [status, setStatus] = useState('');
-  const [showModes, setShowModes] = useState(false);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
   const [helped, setHelped] = useState<{ sound: string; better: number; total: number } | null>(null);
   const [autoDim, setAutoDim] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -48,7 +50,13 @@ export default function QuietRoom() {
   const sleep = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useFocusEffect(useCallback(() => {
-    loadProfile().then(setProfile);
+    Promise.all([loadProfile(), loadOnboarded()]).then(([p, done]) => {
+      setProfile(p);
+      // People who set up their sound before the first-run setup existed skip it.
+      const already = done || !!p.intake.texture || Object.keys(p.tests).length > 0;
+      if (already && !done) saveOnboarded(true);
+      setOnboarded(already);
+    });
     loadQuietMode().then(m => { if (m === 'attack' || m === 'warning' || m === 'normal') setState(m); });
     loadJournal().then(j => { const p = pendingFollowUp(j); if (p && !live.current) setCheckFor(p.id); });
     loadActivity().then(a => setHelped(summarize(a, 90).helpedMost)).catch(() => {});
@@ -80,7 +88,8 @@ export default function QuietRoom() {
   useEffect(() => { armDim(); return () => { if (dimTimer.current) clearTimeout(dimTimer.current); }; }, [armDim]);
   // Hide the tab bar while dimmed, so the whole screen goes dark.
   const dimmed = autoDim && playingNow && !dark;
-  useEffect(() => { navigation.setOptions({ tabBarStyle: dimmed || dark ? { ...tabBarStyle, display: 'none' } : tabBarStyle }); }, [dimmed, dark, navigation]);
+  const setup = onboarded === false;
+  useEffect(() => { navigation.setOptions({ tabBarStyle: dimmed || dark || setup ? { ...tabBarStyle, display: 'none' } : tabBarStyle }); }, [dimmed, dark, setup, navigation]);
 
   /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
   const recipes = useMemo(() => {
@@ -147,7 +156,7 @@ export default function QuietRoom() {
     await end({ ask: false });
     const { profile: next, loweredDb } = lowerState(await loadProfile(), s);
     await saveProfile(next); setProfile(next);
-    setStatus(`Stopped. Silence may be best right now.${loweredDb ? ` Next time this state starts ${loweredDb} dB quieter.` : ''} If this headache is new or different, get medical advice.`);
+    setStatus(`Stopped. Silence may be best right now.${loweredDb ? ' Next time it will start quieter.' : ''} If this headache is new or different, get medical advice.`);
   };
 
   const answer = async (follow: 'better' | 'same' | 'worse' | 'skipped') => {
@@ -167,17 +176,17 @@ export default function QuietRoom() {
 
   const wide = useWide();
   const orbSize = wide ? 340 : 248, coreSize = wide ? 256 : 186;
-  const modesOpen = showModes || wide;
-  const prog = progress(profile);
   const orbOn = playingNow;
-  const built = prog.steps.quick || Object.keys(profile.tests).length > 0;
   const mode = STATES.find(x => x.value === state)!;
-  const quieter = Math.abs(recipes.comfort.levelDb).toFixed(0);
+  const timerShort = timer === '0' ? 'No timer' : timer === '60' ? '1 hour' : `${timer} min`;
   const timerLabel = timer === '0' ? 'Plays until you stop it' : `Fades out after ${timer === '60' ? '1 hour' : `${timer} minutes`}`;
   const haloOpacity = breath.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.6] });
   const haloScale = breath.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
 
-  const dimLayer = dark ? (
+  const finishSetup = () => { saveOnboarded(true); setOnboarded(true); setStatus('Your sound is ready. Press play when you need it.'); };
+  const dimLayer = setup ? (
+    <Onboarding profile={profile} onChange={p => { setProfile(p); saveProfile(p); }} onDone={finishSetup} />
+  ) : dark ? (
     // Dark screen: pure black, status bar hidden; one tap comes back.
     <Pressable onPress={leaveDark} accessibilityRole="button" accessibilityLabel="Dark screen. Tap to come back."
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 11, backgroundColor: colors.black, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 48 }}>
@@ -215,9 +224,7 @@ export default function QuietRoom() {
               </View>
             </View>
           </Pressable>
-          <Text style={{ color: dim.soft, fontSize: 13, textAlign: 'center' }}>
-            {built ? `Your ${recipes.comfort.texture !== 'none' ? `${recipes.comfort.texture} ` : ''}sound, ${quieter} dB quieter than usual` : `A gentle, dark sound, ${quieter} dB quieter than usual`}
-          </Text>
+          <Text style={{ color: dim.soft, fontSize: 13, textAlign: 'center' }}>{`${textureName(recipes.comfort.texture)} · ${mode.label} · ${timerShort}`}</Text>
         </View>
         </>} right={<>
 
@@ -240,26 +247,22 @@ export default function QuietRoom() {
 
         {playing && <Button kind="quiet" label="This is making it worse" icon="hand-left-outline" onPress={worse} style={{ borderWidth: 1, borderColor: 'rgba(227,155,131,0.22)' }} />}
 
-        {/* Quiet settings: two small lines, no counters */}
-        <View style={{ gap: 4, alignItems: 'center' }}>
+        {/* Loudness and timer: always visible, one tap each. */}
+        <View style={{ gap: 10 }}>
+          <Segmented options={STATES} value={state} onChange={changeState} />
+          <Text style={{ color: dim.faint, fontSize: 12.5, textAlign: 'center' }}>
+            {helped ? `${helped.sound} has helped you most.` : mode.short}
+          </Text>
           <Pressable accessibilityRole="button" accessibilityLabel={`${timerLabel}. Change`} onPressIn={tick}
-            onPress={() => { const t = TIMERS[(TIMERS.indexOf(timer) + 1) % TIMERS.length]; setTimer(t); track('timer_change', { timerMin: Number(t) }); }} hitSlop={10}>
-            <Text style={{ color: dim.faint, fontSize: 13 }}>{timerLabel} · change</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Sound: ${mode.short}. Try another`} onPressIn={tick} onPress={() => { const open = !showModes; setShowModes(open); if (open) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60); }} hitSlop={10}>
-            <Text style={{ color: dim.faint, fontSize: 13 }}>{mode.short} · try another</Text>
+            onPress={() => { const t = TIMERS[(TIMERS.indexOf(timer) + 1) % TIMERS.length]; setTimer(t); track('timer_change', { timerMin: Number(t) }); }} hitSlop={10}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', paddingVertical: 8, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, borderColor: colors.line }}>
+            <Ionicons name="timer-outline" size={15} color={dim.soft} />
+            <Text style={{ color: dim.soft, fontSize: 13 }}>{timerLabel}</Text>
           </Pressable>
         </View>
-        {modesOpen && (
-          <View style={{ gap: 8 }}>
-            <Text style={{ color: dim.soft, fontSize: 13.5, textAlign: 'center' }}>Try one of these. Pick whichever feels best right now.</Text>
-            {helped && <Text style={{ color: dim.faint, fontSize: 12.5, textAlign: 'center' }}>{`${helped.sound} has helped you most: easier ${helped.better} of ${helped.total} times.`}</Text>}
-            <Segmented options={STATES} value={state} onChange={v => { changeState(v); setShowModes(false); }} />
-          </View>
-        )}
 
         <Text style={{ color: dim.faint, fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 6 }}>
-          Made on this device; nothing leaves it. For comfort, not treatment. A sudden, new or worst-ever headache, or weakness, numbness or confusion: get medical help.
+          For comfort, not treatment. A sudden, new or worst-ever headache: get medical help.
         </Text>
         </>} />
       </View>

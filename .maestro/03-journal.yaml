@@ -6,7 +6,7 @@ name: Journal
 - tapOn:
     id: "tab-journal"
 - extendedWaitUntil:
-    visible: "Your hard days"
+    visible: "Your journal"
     timeout: 10000
 - scrollUntilVisible:
     element: "Episodes \\(1\\)"

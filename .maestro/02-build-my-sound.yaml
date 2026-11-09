@@ -1,4 +1,4 @@
-# My sound: the 30-second quick start saves, then "Tune it by ear" plays a pair and accepts a choice.
+# My sound: pick a texture, then "Let Still choose by ear" plays a pair and accepts a choice.
 appId: com.stillsoundlab.still
 name: Build my sound
 ---
@@ -6,25 +6,16 @@ name: Build my sound
 - tapOn:
     id: "tab-sound"
 - extendedWaitUntil:
-    visible: "Make it yours"
+    visible: "Your sound"
     timeout: 10000
 - takeScreenshot: 06-my-sound
-# Quick start opens by default for a new person.
-- tapOn: "A lot"
-- tapOn: "Hiss, high sounds"
-- tapOn: "Yes"
-- tapOn: "Earbuds"
+- tapOn: "Ocean"
+- takeScreenshot: 07-mixer
 - scrollUntilVisible:
-    element: "Choose Rain"
+    element: "Let Still choose by ear"
     direction: DOWN
     centerElement: true
-- tapOn: "Choose Rain"
-- takeScreenshot: 07-quick-start
-- scrollUntilVisible:
-    element: "Done"
-    direction: DOWN
-    centerElement: true
-- tapOn: "Done"
+- tapOn: "Let Still choose by ear"
 - scrollUntilVisible:
     element: "Play A then B"
     direction: DOWN
