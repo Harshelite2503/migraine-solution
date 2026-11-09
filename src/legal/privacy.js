@@ -10,7 +10,7 @@ export const PRIVACY_SECTIONS = [
     'You can clear the journal and activity log at any time from the Journal.',
   ]],
   ['Only if you choose: an account', [
-    'Signing in is optional. If you sign in, we store your email address so we can send you a sign-in code.',
+    'Signing in is optional. If you sign in, we store your email address so we can send you a sign-in link.',
     'You can delete your account at any time under My sound, Account. This deletes the account and everything stored with it on our server.',
   ]],
   ['Only if you choose: "Help improve Still"', [

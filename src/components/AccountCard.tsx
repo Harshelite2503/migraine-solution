@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import { PrivacySheet } from './PrivacySheet';
 import { supabaseReady } from '../lib/supabase';
-import { deleteAccount, isSignedIn, sendCode, signOut, useSession, verifyCode } from '../lib/account';
+import { deleteAccount, isSignedIn, sendLink, signOut, useSession } from '../lib/account';
 import { deleteShared, setSharing, sharingOn } from '../lib/sharing';
 import { track } from '../lib/activity';
 import { Button, confirmAction, H2, Muted, styles } from '../lib/ui';
@@ -21,22 +21,15 @@ function AccountCardInner() {
   const session = useSession();
   const signedIn = isSignedIn(session);
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
 
   const ask = async () => {
     setBusy(true); setNote('');
-    const err = await sendCode(email);
+    const err = await sendLink(email);
     setBusy(false);
-    if (err) setNote(err); else { setSent(true); setNote(`We sent a 6-digit code to ${email.trim()}.`); }
-  };
-  const confirm = async () => {
-    setBusy(true); setNote('');
-    const err = await verifyCode(email, code);
-    setBusy(false);
-    if (err) setNote(err); else { setSent(false); setCode(''); setNote('Signed in.'); track('sign_in'); }
+    if (err) setNote(err); else { setSent(true); setNote(''); track('sign_in_link_sent'); }
   };
   const remove = () => confirmAction('Delete your account?', 'This deletes your account and everything stored with it on our server. Your sound and journal on this device stay.', 'Delete',
     async () => { setBusy(true); const err = await deleteAccount(); setBusy(false); setNote(err || 'Your account has been deleted.'); });
@@ -55,19 +48,18 @@ function AccountCardInner() {
         </>
       ) : (
         <>
-          <Muted small>Sign in to use the AI review. No password: we email you a 6-digit code.</Muted>
+          <Muted small>Sign in to use the AI review. No password: we email you a sign-in link.</Muted>
           {!sent ? (
             <>
               <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={colors.muted} style={input}
                 autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email" accessibilityLabel="Email" />
-              <Button kind="primary" label={busy ? 'Sending…' : 'Email me a code'} onPress={ask} disabled={busy || !email.trim()} />
+              <Button kind="primary" label={busy ? 'Sending…' : 'Email me a sign-in link'} onPress={ask} disabled={busy || !email.trim()} />
             </>
           ) : (
             <>
-              <TextInput value={code} onChangeText={t => setCode(t.replace(/\D/g, '').slice(0, 8))} placeholder="6-digit code" placeholderTextColor={colors.muted} style={input}
-                keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" accessibilityLabel="Code from the email" />
-              <Button kind="primary" label={busy ? 'Checking…' : 'Sign in'} onPress={confirm} disabled={busy || code.length < 6} />
-              <Button kind="quiet" label="Use a different email" onPress={() => { setSent(false); setCode(''); setNote(''); }} />
+              <Text style={{ color: colors.ink, fontSize: 14, lineHeight: 20 }}>{`We sent a sign-in link to ${email.trim()}. Open it on this device and you're in.`}</Text>
+              <Muted small>No email after a few minutes? Check spam, or try again.</Muted>
+              <Button kind="quiet" label="Use a different email" onPress={() => { setSent(false); setNote(''); }} />
             </>
           )}
         </>

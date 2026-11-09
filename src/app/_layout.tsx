@@ -8,6 +8,7 @@ import { Sidebar } from '../components/Sidebar';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { syncNow } from '../lib/sharing';
+import { listenForSignInLinks } from '../lib/account';
 
 const icon = (name: keyof typeof Ionicons.glyphMap) => ({ color, size }: { color: unknown; size: number }) => <Ionicons name={name} size={size} color={color as string} />;
 
@@ -19,7 +20,8 @@ export default function Layout() {
     syncNow();
     const sub = AppState.addEventListener('change', s => { if (s === 'active') syncNow(); });
     const timer = setInterval(syncNow, 5 * 60 * 1000);
-    return () => { sub.remove(); clearInterval(timer); };
+    const stopLinks = listenForSignInLinks();
+    return () => { sub.remove(); clearInterval(timer); stopLinks(); };
   }, []);
   const frame = Platform.OS === 'web' && !wide ? { flex: 1, width: '100%' as const, maxWidth: 520, alignSelf: 'center' as const } : { flex: 1 };
   return (
