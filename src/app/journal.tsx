@@ -1,27 +1,22 @@
-// Journal: headache episodes, what was chosen, how it felt, and the privacy-minimal pilot summary.
+// Journal: headache episodes, what was chosen and how it felt. Kept on this device.
 import { useCallback, useState } from 'react';
-import { Share, Text, TextInput, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { episodes, freshJournal, metrics, pilotSummary, sanitizeJournal } from '../engine/journal-store.js';
+import { episodes, freshJournal, metrics, sanitizeJournal } from '../engine/journal-store.js';
 import { clearJournal, loadJournal, saveJournal, type Journal } from '../lib/storage';
 import { clearActivity, loadActivity, summarize } from '../lib/activity';
-import { Button, Columns, confirmAction, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
+import { Button, Columns, confirmAction, H1, H2, Muted, Screen, styles } from '../lib/ui';
 import { colors, fonts } from '../lib/theme';
 
-const CHOICES = { silence: 'Dark screen, no sound', comfort: 'My comfort sound', softer: 'Softer and darker' } as const;
+const CHOICES = { silence: 'Dark screen', comfort: 'My sound', softer: 'Softer' } as const;
 const FOLLOWS = { better: 'A bit easier', same: 'About the same', worse: 'Worse' } as const;
-const STATES: Record<string, string> = { attack: 'hushed sound', warning: 'gentle sound', recovering: 'gentle sound', normal: 'full sound' };
 const DAY = 864e5;
-const SOUNDS = { Hushed: 'Hushed', Gentle: 'Gentle', Full: 'Full' } as const;
-const TEXTURES = { rain: 'Rain', ocean: 'Ocean', fan: 'Fan', plain: 'Plain hush' } as const;
-const round = (o: Record<string, number>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
 
 export default function JournalScreen() {
   const [journal, setJournal] = useState<Journal>(freshJournal() as Journal);
-  const [code, setCode] = useState('');
   const [note, setNote] = useState('');
   const [act, setAct] = useState(summarize([]));
-  useFocusEffect(useCallback(() => { loadJournal().then(setJournal); loadActivity().then(a => setAct(summarize(a, 30))).catch(() => {}); }, []));
+  useFocusEffect(useCallback(() => { loadJournal().then(setJournal); loadActivity().then(a => setAct(summarize(a, 90))).catch(() => {}); }, []));
 
   const m = metrics(journal);
   const eps = episodes(journal).reverse();
@@ -37,100 +32,55 @@ export default function JournalScreen() {
     setJournal(next);
   };
 
-  const sharePilot = async () => {
-    let summary;
-    try { summary = pilotSummary(journal, code); } catch { setNote('Enter the pilot code you were given (letters and numbers only).'); return; }
-    const text = JSON.stringify(summary);
-    try {
-      await Share.share({ title: `Still pilot ${summary.participant}`, message: text });
-    } catch {
-      // Browsers without a share sheet: copy it instead.
-      try { await navigator.clipboard.writeText(text); setNote('Copied your pilot summary. Paste it into an email to the study team.'); }
-      catch { setNote('This browser cannot share or copy. Try it on your phone.'); }
-    }
-  };
-
-  const clear = () => confirmAction('Clear your journal?', 'This removes every episode from this device. It cannot be undone.', 'Clear',
+  const clear = () => confirmAction('Clear your journal?', 'This removes every entry from this device. It cannot be undone.', 'Clear',
     async () => { await clearJournal(); await clearActivity(); setJournal(freshJournal() as Journal); setAct(summarize([])); setNote('Journal cleared.'); });
 
   return (
     <Screen>
         <Columns rightWidth={460} left={<>
-        <Eyebrow>Still · journal</Eyebrow>
-        <H1>Your hard days</H1>
-        <Muted>Each time you use the quiet room, Still notes the date, what you chose and for how long. Sessions within 12 hours count as one episode. Nothing leaves this device unless you share it.</Muted>
+        <H1>Your journal</H1>
+        <Muted>Still notes each time you use it. It stays on this device.</Muted>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-          <Stat value={m.usedEpisodes} label="episodes with Still, last 60 days" />
-          <Stat value={m.missedEpisodes} label="headaches noted without Still" />
-          <Stat value={m.medianListeningMin === null ? '–' : Math.round(m.medianListeningMin)} label="typical minutes of sound" />
-          <Stat value={m.worseSessions} label="sessions that made it worse" warn={m.worseSessions > 0} />
+          <Stat value={m.usedEpisodes} label="hard days with Still" />
+          <Stat value={m.medianListeningMin === null ? '–' : Math.round(m.medianListeningMin)} label="usual minutes" />
         </View>
+        {act.helpedMost && <Text style={{ color: colors.accent, fontSize: 14 }}>{`${act.helpedMost.sound} has helped you most so far.`}</Text>}
 
         <View style={styles.card}>
-          <H2>What you chose</H2>
-          <Bars counts={m.choices} labels={CHOICES} />
-          <View style={{ height: 10 }} />
           <H2>How it felt afterwards</H2>
           <Bars counts={m.followUps} labels={FOLLOWS} />
-          <Muted small>Feeling better afterwards does not show the sound caused it. Headaches also ease with time, rest and medicine.</Muted>
+          <Muted small>Feeling better afterwards doesn't mean the sound caused it.</Muted>
         </View>
 
         <View style={styles.card}>
-          <H2>Your activity, last 30 days</H2>
-          {act.plays === 0 ? <Muted>Nothing yet. What you play, for how long, and how it felt will show here.</Muted> : (
-            <>
-              <Text style={{ color: colors.ink, fontSize: 14 }}>{`${Math.round(act.listeningMin)} minutes of sound · ${act.plays} ${act.plays === 1 ? 'play' : 'plays'}${act.darkScreens ? ` · ${act.darkScreens} dark screen${act.darkScreens === 1 ? '' : 's'}` : ''}`}</Text>
-              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6 }}>Minutes by sound</Text>
-              <Bars counts={round(act.minutes)} labels={SOUNDS} />
-              <Text style={{ color: colors.muted, fontSize: 13 }}>Minutes by texture</Text>
-              <Bars counts={round(act.textures)} labels={TEXTURES} />
-              {Object.entries(act.outcomes).map(([sound, o]) => (
-                <Text key={sound} style={{ color: colors.ink, fontSize: 13 }}>{`${sound}: easier ${o.better}, same ${o.same}, worse ${o.worse}`}</Text>
-              ))}
-              {act.helpedMost && <Text style={{ color: colors.accent, fontSize: 13.5, marginTop: 4 }}>{`${act.helpedMost.sound} has helped you most so far.`}</Text>}
-            </>
-          )}
-          <Muted small>Recorded only on this device, to help Still suit you. Clearing the journal clears it too.</Muted>
-        </View>
-
-        </>} right={<>
-        <View style={styles.card}>
-          <H2>Episodes ({eps.length})</H2>
-          {eps.length === 0 && <Muted>No episodes yet. When a headache starts, open the Quiet room.</Muted>}
-          {eps.slice(0, 40).map(e => {
-            const chose = Object.entries(e.choices).filter(([, n]) => n).map(([k, n]) => `${CHOICES[k as keyof typeof CHOICES].toLowerCase()}${Number(n) > 1 ? ` ×${n}` : ''}`).join(' · ');
-            const felt = Object.entries(e.followUps).filter(([k, n]) => n && k in FOLLOWS).map(([k]) => FOLLOWS[k as keyof typeof FOLLOWS].toLowerCase());
-            return (
-              <View key={e.start} style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, marginTop: 4, gap: 2 }}>
-                <Text style={{ color: colors.ink, fontWeight: '600' }}>{new Date(e.start).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} · {[...new Set(e.sessions.map((s: any) => STATES[s.state]))].join(', ')}</Text>
-                <Muted small>{chose}</Muted>
-                <Muted small>{[e.listeningS ? `${Math.round(e.listeningS / 60)} min of sound` : '', e.darkS ? `${Math.round(e.darkS / 60)} min dark` : '', felt.length ? `felt: ${felt.join(', ')}` : ''].filter(Boolean).join(' · ')}</Muted>
-                {e.worse && <Text style={{ color: colors.warn, fontSize: 12 }}>made it worse once</Text>}
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.card}>
-          <H2>Had a headache without opening Still?</H2>
-          <Muted>Noting these keeps the picture honest. One tap, no details.</Muted>
+          <H2>Headache without Still?</H2>
+          <Muted>One tap, no details.</Muted>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
             <Button label="Today" onPress={() => addMissed(0)} style={{ flex: 1 }} />
             <Button label="Yesterday" onPress={() => addMissed(1)} style={{ flex: 1 }} />
             <Button label="2 days ago" onPress={() => addMissed(2)} style={{ flex: 1 }} />
           </View>
         </View>
-
-        <View style={styles.card}>
-          <H2>Taking part in the pilot?</H2>
-          <Muted>Enter your pilot code and share a summary with the pilot team. It holds only day numbers counted from your first use, what you tapped and for how long. No dates, notes or sound settings.</Muted>
-          <TextInput value={code} onChangeText={setCode} placeholder="Pilot code, e.g. P017" placeholderTextColor={colors.muted} autoCapitalize="characters" autoCorrect={false} maxLength={24}
-            style={{ borderWidth: 1, borderColor: colors.line, borderRadius: 10, padding: 12, color: colors.ink, marginTop: 6 }} accessibilityLabel="Pilot code" />
-          <Button kind="primary" label="Share pilot summary" onPress={sharePilot} style={{ marginTop: 6 }} />
-          <Button kind="quiet" label="Clear journal" onPress={clear} />
-        </View>
         {note ? <Muted>{note}</Muted> : null}
+
+        </>} right={<>
+        <View style={styles.card}>
+          <H2>Episodes ({eps.length})</H2>
+          {eps.length === 0 && <Muted>Nothing yet. When a headache starts, open the Quiet room.</Muted>}
+          {eps.slice(0, 40).map(e => {
+            const chose = Object.entries(e.choices).filter(([, n]) => n).map(([k, n]) => `${CHOICES[k as keyof typeof CHOICES].toLowerCase()}${Number(n) > 1 ? ` ×${n}` : ''}`).join(' · ');
+            const felt = Object.entries(e.followUps).filter(([k, n]) => n && k in FOLLOWS).map(([k]) => FOLLOWS[k as keyof typeof FOLLOWS].toLowerCase());
+            return (
+              <View key={e.start} style={{ borderTopWidth: 1, borderTopColor: colors.line, paddingTop: 10, marginTop: 4, gap: 2 }}>
+                <Text style={{ color: colors.ink, fontWeight: '600' }}>{new Date(e.start).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</Text>
+                <Muted small>{[chose, e.listeningS ? `${Math.round(e.listeningS / 60)} min` : '', felt.length ? `felt ${felt.join(', ')}` : ''].filter(Boolean).join(' · ')}</Muted>
+                {e.worse && <Text style={{ color: colors.warn, fontSize: 12 }}>made it worse once</Text>}
+              </View>
+            );
+          })}
+        </View>
+        {(eps.length > 0 || m.missedEpisodes > 0) && <Button kind="quiet" label="Clear journal" onPress={clear} />}
         </>} />
     </Screen>
   );

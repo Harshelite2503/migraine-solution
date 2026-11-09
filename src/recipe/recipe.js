@@ -58,7 +58,7 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
   let tilt, tiltSource;
   if (Number.isFinite(tests.tilt?.value)) {
     tilt = tests.tilt.value; tiltSource = 'measured';
-    note('tiltDbPerOct', tilt, 'measured', `You chose this darkness in ${tests.tilt.trials} side-by-side comparisons.`, ['personal', 'hongisto2015']);
+    note('tiltDbPerOct', tilt, 'measured', tests.tilt.trials ? `You chose this darkness in ${tests.tilt.trials} side-by-side comparisons.` : 'You set this on the Tone dial.', ['personal', 'hongisto2015']);
   } else {
     tilt = -6 - 0.9 * n04(bother.high) + 0.6 * n04(bother.low);
     tiltSource = 'estimated';

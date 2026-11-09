@@ -7,8 +7,8 @@ import { colors } from '../lib/theme';
 
 const ITEMS: { path: '/' | '/journal' | '/tune'; label: string; sub: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { path: '/', label: 'Quiet room', sub: 'Play your sound', icon: 'moon-outline' },
-  { path: '/journal', label: 'Journal', sub: 'Your hard days', icon: 'book-outline' },
-  { path: '/tune', label: 'My sound', sub: 'Make it yours', icon: 'options-outline' },
+  { path: '/journal', label: 'Journal', sub: 'How it went', icon: 'book-outline' },
+  { path: '/tune', label: 'My sound', sub: 'Dials and textures', icon: 'options-outline' },
 ];
 
 export function Sidebar() {

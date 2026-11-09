@@ -16,8 +16,9 @@ This is the React Native (Expo) version of the web prototype in [Harshelite2503/
 | Screen | What it does |
 |---|---|
 | **Quiet room** (`src/app/index.tsx`) | Silence first, then your comfort sound, then a softer version. Plays at the "headache now" level: 14 dB below a normal day, with a 6-second-plus fade-in. "Warning signs" and "Recovering" are 6 dB quieter than a normal day. "This is making it worse" stops the sound and makes that state 4 dB quieter next time. Sleep timer, and a dark screen while sound plays. Nothing asks you questions while it plays. |
-| **Journal** (`src/app/journal.tsx`) | Episodes (sessions within 12 hours count as one), what you chose, how it felt afterwards, headaches noted without opening Still, and a privacy-minimal pilot summary shared through the phone's share sheet. |
-| **Tune my sound** (`src/app/tune.tsx`) | Four questions pick a gentle first sound. Then A/B rounds of six-second sounds at matched loudness train a Gaussian-process preference model on four qualities: darkness, noise vs hum, slow swell, and how soft the top end is. |
+| **First-run setup** (`src/components/Onboarding.tsx`) | About 30 seconds: one question (which sounds are hardest), pick a texture by ear, turn one Tone dial while it plays. Every step can be skipped. |
+| **Journal** (`src/app/journal.tsx`) | Episodes (sessions within 12 hours count as one), how it felt afterwards, and one-tap notes for headaches without Still. |
+| **My sound** (`src/app/tune.tsx`) | A small mixer: four textures and four click-stop dials (Tone, Hum, Motion, Space) that change the sound as it plays (`src/components/Dial.tsx`, `Studio.tsx`). Optional "choose by ear" A/B rounds, and account/privacy settings, sit behind one tap each. |
 
 ## Privacy
 
