@@ -1,0 +1,312 @@
+<title>Still Sound Evidence</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column (about 68ch) with full-width figures; findings are numbered because the
+   report is a chain of evidence, read in order. Night-blue ink with a muted sage accent, echoing the app. */
+:root {
+  --bg: #f5f7f6; --surface: #ffffff; --ink: #14202b; --ink-2: #47545f; --ink-3: #6b7781;
+  --rule: #dbe2e2; --accent: #4f7a5a; --accent-soft: #e3ece4; --warn: #9a5b12; --warn-soft: #f6ead9;
+  --s1: #2a78d6; --s2: #eb6834; --grid: #e6ebeb;
+  --display: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10161c; --surface: #172029; --ink: #e8eef0; --ink-2: #b4c0c6; --ink-3: #8b98a0;
+  --rule: #2a3640; --accent: #9cc4a3; --accent-soft: #1e2d26; --warn: #e3a35a; --warn-soft: #2e2418;
+  --s1: #3987e5; --s2: #d95926; --grid: #24303a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10161c; --surface: #172029; --ink: #e8eef0; --ink-2: #b4c0c6; --ink-3: #8b98a0;
+  --rule: #2a3640; --accent: #9cc4a3; --accent-soft: #1e2d26; --warn: #e3a35a; --warn-soft: #2e2418;
+  --s1: #3987e5; --s2: #d95926; --grid: #24303a; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 44px; }
+.col { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--display); font-weight: 500; text-wrap: balance; margin: 0; color: var(--ink); }
+h1 { font-size: clamp(34px, 5vw, 50px); line-height: 1.08; letter-spacing: -0.01em; }
+h2 { font-size: 28px; line-height: 1.2; }
+h3 { font-size: 20px; }
+p { margin: 0; }
+.stack { display: grid; gap: 14px; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+.lede { font-size: 19px; color: var(--ink-2); }
+.meta { font: 13px/1.5 var(--mono); color: var(--ink-3); }
+.verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.v { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.v .tag { font: 700 12px/1 var(--body); letter-spacing: 0.04em; text-transform: uppercase; }
+.v.yes .tag { color: var(--accent); } .v.no .tag { color: var(--warn); } .v.mid .tag { color: var(--ink-3); }
+.v p { color: var(--ink-2); font-size: 15px; }
+.v strong { color: var(--ink); }
+section { display: grid; gap: 18px; }
+.num { font-family: var(--mono); font-size: 13px; color: var(--ink-3); }
+.finding-head { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+figure { margin: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 18px 12px; display: grid; gap: 10px; min-width: 0; }
+figcaption { font-size: 14px; color: var(--ink-2); max-width: 75ch; }
+figcaption b { color: var(--ink); }
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 520px; }
+.chart svg text { fill: var(--ink-2); font: 12px var(--body); }
+.chart svg .axis { stroke: var(--rule); } .chart svg .gridl { stroke: var(--grid); }
+.chart svg .lab { fill: var(--ink); font-weight: 700; }
+.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.callout { background: var(--accent-soft); border-radius: 10px; padding: 16px 18px; display: grid; gap: 8px; }
+.callout.warn { background: var(--warn-soft); }
+.callout h3 { font-size: 18px; }
+ul.clean { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 700; color: var(--ink); font-size: 13px; }
+td { color: var(--ink-2); }
+td.n { font-family: var(--mono); font-size: 13px; text-align: right; white-space: nowrap; }
+.tablewrap { overflow-x: auto; }
+details { font-size: 14px; color: var(--ink-2); }
+summary { cursor: pointer; color: var(--accent); font-weight: 700; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+a { color: var(--accent); }
+.chain { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; counter-reset: step; }
+.chain div { border-top: 3px solid var(--accent); padding-top: 10px; display: grid; gap: 4px; }
+.chain b { font-size: 15px; }
+.chain span { font-size: 14px; color: var(--ink-2); }
+#tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font: 13px/1.4 var(--body); padding: 6px 9px; border-radius: 6px; max-width: 260px; z-index: 20; }
+.hit { cursor: default; }
+</style>
+
+<div class="wrap">
+  <header class="stack col">
+    <div class="eyebrow">Research report · Still migraine sound app</div>
+    <h1>Do Still's sounds read as comfortable to the human ear and brain?</h1>
+    <p class="lede">We tested Still's sounds against public human listening data and two published computer models of hearing, without recruiting anyone. This page says what held up and what did not, and what it means for the app.</p>
+    <p class="meta">8 Nov 2026 · 34 Still sounds · 287 rated natural sounds · 78 people tested for migraine sound tolerance · 216 emotion-targeted music clips</p>
+  </header>
+
+  <section>
+    <h2>The short answer</h2>
+    <div class="verdict">
+      <div class="v yes"><span class="tag">Supported</span><p><strong>Soft, quiet, low-frequency sound suits migraine ears.</strong> People with migraine tolerate much less sound at every pitch. Their tolerance drops off most at 3–6 kHz and holds up best at 100–200 Hz.</p></div>
+      <div class="v no"><span class="tag">Change this</span><p><strong>The hum lowers comfort.</strong> Adding Still's tonal hum moved predicted pleasantness from the 47th to the 17th percentile of natural sounds. Two separate models agree.</p></div>
+      <div class="v yes"><span class="tag">Lead with it</span><p><strong>Rain is Still's most comfortable sound.</strong> It scored the 68th percentile for pleasantness and the 91st for calm, the best of all 34.</p></div>
+      <div class="v mid"><span class="tag">Not shown</span><p><strong>Nothing here shows a sound reduces migraine pain.</strong> The models predict comfort for average listeners, and no dataset measured pain. A small study with users would be the next step.</p></div>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>How the test works</h2>
+    <p>No public dataset shows a migraine brain listening to sound. So we chained four independent pieces, each validated on real human data, and checked whether they agree.</p>
+  </section>
+  <div class="chain">
+    <div><b>1 · Migraine ears</b><span>Raw data from 78 people (51 with migraine) who set just-audible and mildly-uncomfortable levels for 13 tones.</span></div>
+    <div><b>2 · Human comfort ratings</b><span>ARAUS: 33,735 ratings of 287 natural sounds mixed into city scenes, with each sound's own effect on calm.</span></div>
+    <div><b>3 · Models of hearing</b><span>TRIBE v2 predicts cortical fMRI responses. Wav2Vec-BERT is a deep auditory network. Both are scored on how well they predict the comfort ratings.</span></div>
+    <div><b>4 · Independent check</b><span>216 music clips composed to target specific calm or excited states (OpenNeuro ds002725), never used in training.</span></div>
+  </div>
+
+  <section>
+    <div class="finding-head col"><span class="num">Finding 1</span><h2>Migraine ears have less room at every pitch</h2></div>
+    <p class="col">Each person set a slider to where a tone was just audible, then to where it became mildly uncomfortable. The gap between the two is their comfortable range. People with migraine had a range about a third narrower overall (0.24 vs 0.36 slider units, p = 0.0007, effect size d = 0.93). The difference was significant at 11 of 13 frequencies after correcting for multiple tests.</p>
+    <figure>
+      <div class="legend"><span style="--c: var(--s1)">With migraine (n = 51)</span><span style="--c: var(--s2)">Without migraine (n = 27)</span></div>
+      <div class="chart" id="c-mig"></div>
+      <figcaption><b>Comfortable range by tone frequency</b>, mean ± 1 standard error, in the study's slider units (the paper gives no dB mapping). Hover for values. Source: Mourgela, Vikelis &amp; Reiss 2023, <i>Ear and Hearing</i>, raw data re-analysed.</figcaption>
+    </figure>
+    <div class="stack col">
+      <p><b>The shape matters for Still.</b> We compared each person's range at each frequency with their own average, which removes differences in headphones and volume. On that measure, people with migraine keep relatively more room at 100–200 Hz (p = 0.002 and 0.02) and lose relatively more at 3 kHz and 6 kHz (p = 0.009 and 0.004). The overall shape differs between groups (permutation p = 0.004). This directly supports Still's dark, low-weighted sound with a soft top end.</p>
+      <p>Testing during an attack showed only a trend toward narrower ranges (0.21 vs 0.25, p = 0.38, only 11 people tested mid-attack). People reporting higher severity had wider ranges than low-severity people (p = 0.02), which matches the original paper and has no clear explanation.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="finding-head col"><span class="num">Finding 2</span><h2>What people find calm in real sounds</h2></div>
+    <p class="col">ARAUS asked 685 people to rate city recordings with one of 287 natural sounds added. We estimated each added sound's own effect on calm, after removing which person was rating and which scene it was. The estimates are reliable: the uncertainty per sound (±0.11) is small next to the spread between sounds (0.39).</p>
+    <figure>
+      <div class="chart" id="c-cls"></div>
+      <figcaption><b>Change in calm rating (1–5 scale) from adding each type of sound</b>, average over the sounds in each type, ± 1 standard error. Zero is the scene with nothing added. Source: ARAUS (Ooi et al. 2023), re-analysed.</figcaption>
+    </figure>
+    <div class="stack col">
+      <p>A comfort model built from standard acoustic measures (spectrum, loudness, sharpness) predicted held-out ratings well: r = 0.80–0.89, against a ceiling of 0.88 set by how much raters agree with each other. Our acoustic measurement code matched the ARAUS team's published values (r ≥ 0.99 for level and loudness, 0.92 for sharpness).</p>
+      <div class="callout warn"><h3>Why this model can't score Still's sounds directly</h3><p>Every one of Still's sounds lies outside the range of the ARAUS training sounds. The model has also learned that low-frequency energy means traffic, so at equal volume it prefers white noise to brown noise. That reflects the source of the sound, not how it feels. We therefore use it only for direction (quieter is calmer, and a softer top end helps), and turned to the hearing models below.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="finding-head col"><span class="num">Finding 3</span><h2>A deep model of hearing predicts comfort well; the brain model less so</h2></div>
+    <p class="col">We ran all 287 sounds, at equal loudness, through the brain-response model (TRIBE v2) and a deep auditory network (Wav2Vec-BERT), then trained simple readouts to predict each sound's comfort effect. The hard test is <i>within</i> a sound type: can a model tell a calming bird recording from a less calming one, rather than just "birds good, traffic bad"?</p>
+    <figure>
+      <div class="legend"><span style="--c: var(--s1)">All 287 sounds</span><span style="--c: var(--s2)">Within the same sound type</span></div>
+      <div class="chart" id="c-models"></div>
+      <figcaption><b>How well each approach predicts a sound's effect on calm</b> (correlation with human ratings, 10-fold cross-validation, ceiling 0.96). Knowing only the sound type gets 0.76 overall but nothing within a type. Hover for values.</figcaption>
+    </figure>
+    <div class="stack col">
+      <p><b>The auditory network wins clearly</b> (r = 0.87 overall, 0.65 within type). The brain model's predicted cortical response does a little better than plain acoustics within type (0.26 vs 0.24). Combining the two reaches 0.37.</p>
+      <p><b>One brain result stands out.</b> Across all sounds, at equal loudness, the region whose predicted activity best tracked discomfort was primary auditory cortex (Heschl's gyrus, both sides, r ≈ −0.3). The more a sound drives it, the less calm people find it. Over-responsive sensory cortex is a leading theory of migraine sound sensitivity, so this direction is consistent with that theory. It is a model prediction, not a measurement.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="finding-head col"><span class="num">Finding 4</span><h2>Checking the models on music they never saw</h2></div>
+    <p class="col">The ds002725 clips were composed to shift between calm and excited states partway through. We confirmed the excited states really are faster and louder: about 4.4 notes per second against 1.9, and roughly 4 dB louder within a clip.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Check</th><th>Result</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Auditory-network comfort score vs how excited the music was meant to be</td><td class="n">r = −0.63</td><td>Expected direction: more excited music scores less pleasant (216 clips, p &lt; 10⁻²⁴)</td></tr>
+        <tr><td>Brain model: auditory cortex response when music turns excited</td><td class="n">r = +0.57</td><td>Expected: predicted auditory cortex activity rises with louder, faster music</td></tr>
+        <tr><td>Brain model comfort score when music turns excited</td><td class="n">r = +0.42</td><td>Wrong direction: the brain model's comfort score does not transfer to music</td></tr>
+      </tbody>
+    </table></div>
+    <p class="col">So the auditory network's comfort score generalises, and the brain model reproduces sensory responses but not a reliable comfort score. We weight the auditory network's scores more for Still's sounds.</p>
+  </section>
+
+  <section>
+    <div class="finding-head col"><span class="num">Finding 5</span><h2>How Still's sounds score</h2></div>
+    <p class="col">All sounds were matched for loudness, so this compares character, not volume. Scores are percentiles among the 287 rated natural sounds. 50 means a typical natural sound.</p>
+    <figure>
+      <div class="chart" id="c-still"></div>
+      <figcaption><b>Predicted pleasantness percentile</b> from the auditory-network readout. "Still noise" averages 12 spectra (four darkness levels × three top-end settings); "with hum" is the same 12 with the hum at half strength. Hover for the calm percentile too.</figcaption>
+    </figure>
+    <div class="stack col">
+      <ul class="clean">
+        <li><b>The hum is the biggest single factor.</b> It costs 30 percentile points on pleasantness with the auditory network (47 → 17) and 14 on the brain model's calm score (47 → 33). It does not change the network's calm score, so it reads as less pleasant rather than more agitating.</li>
+        <li><b>Rain stands out.</b> Rain with an open top end (4 kHz) scored the 68th percentile for pleasantness, 91st for calm, and was also the brain model's best Still sound. With a 1.2 kHz top end it scored 56th and 55th.</li>
+        <li><b>Darkness and top-end softness barely moved these scores</b> (1–4 points) at equal loudness. Their support comes from the migraine data in Finding 1, not from these models.</li>
+        <li><b>The app's current default attack sound scored the 36th percentile</b>. It includes a faint hum (15%) and a slow swell, which likely explains the gap.</li>
+        <li>Fan sat near the middle (47th), as did plain white, pink and brown noise (48th–54th). Ocean scored below the middle (39th–45th).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="col">
+    <h2>What to change in Still</h2>
+    <div class="callout"><ul class="clean">
+      <li><b>Turn the hum off by default.</b> Offer it only when a person picks it in the listening tests. Today the recipe adds some hum to most sounds.</li>
+      <li><b>Make rain the first texture offered</b>, with the top end around 2–4 kHz. The migraine data argues against a fully open top end, so let the A/B tests settle each person's exact cutoff.</li>
+      <li><b>Keep the dark spectrum and soft top end as the default.</b> That is what migraine tolerance data supports.</li>
+      <li><b>Keep volume low and fade in slowly.</b> Loudness was the strongest driver of discomfort in every dataset.</li>
+      <li><b>Don't claim pain relief.</b> The accurate claim is "designed around published data on migraine sound sensitivity and listener comfort".</li>
+    </ul></div>
+  </section>
+
+  <section class="col">
+    <h2>Limits of this evidence</h2>
+    <ul class="clean">
+      <li>No brain data from people with migraine exists for these sounds. The brain model predicts an average healthy listener, trained on films and podcasts.</li>
+      <li>Comfort is not pain relief. None of these datasets measured headache pain.</li>
+      <li>ARAUS sounds were heard inside city scenes, and Still is heard alone, often in bed. Effects could differ.</li>
+      <li>The migraine study was online, with home headphones, and reports levels in slider units rather than decibels. Only 11 people were tested mid-attack.</li>
+      <li>The auditory-network layer was chosen on the same data it was scored on, so its scores may be slightly optimistic.</li>
+      <li>The valence half of the music labels comes from the paper's table order. The arousal half was confirmed from the audio.</li>
+      <li>Spot GPUs were refused by Azure for this subscription in every region tried, so the models ran on two regular 16-core CPU machines (about $3 in total, now deleted).</li>
+    </ul>
+  </section>
+
+  <section class="col">
+    <h2>Data, models and methods</h2>
+    <details><summary>Sources and licences</summary>
+      <ul class="clean" style="margin-top:10px">
+        <li>Mourgela, Vikelis &amp; Reiss (2023). Frequency-specific loudness discomfort levels in listeners with migraine. <i>Ear and Hearing</i> 44(5). Raw data: github.com/amourgela/supplementalmaterial. Only numeric measurement columns were read.</li>
+        <li>Ooi et al. (2023). ARAUS dataset, IEEE Trans. Affective Computing. CC BY-NC 4.0, research use.</li>
+        <li>d'Ascoli et al. (2026). TRIBE v2 brain encoding model, facebook/tribev2. CC BY-NC 4.0. Run audio-only, without the text model.</li>
+        <li>Wav2Vec-BERT 2.0 (facebook/w2v-bert-2.0), mean embeddings per layer.</li>
+        <li>Daly et al. (2019), <i>Scientific Reports</i> 9:9415. OpenNeuro ds002725, generated piano music targeting 9 valence × arousal states. Williams et al. (2017) for the generator's design rules.</li>
+        <li>Destrieux cortical atlas on fsaverage5 (via nilearn) for brain regions.</li>
+      </ul>
+    </details>
+    <details><summary>Method details</summary>
+      <ul class="clean" style="margin-top:10px">
+        <li>Migraine layer: Welch t-tests per frequency with Holm correction, bootstrap confidence intervals, and a 5,000-shuffle permutation test on each person's range relative to their own mean. Rows where sliders were never moved were excluded, following the paper.</li>
+        <li>Masker effects: least squares with person, scene and masker terms plus signal-to-masker ratio; "no masker" is the reference. Standard errors come from a 30× bootstrap over participants.</li>
+        <li>Comfort models: ridge and gradient boosting on A-weighted 1/3-octave levels, LAeq, ISO 532-1 loudness and DIN 45692 sharpness (MoSQITo). Trained on ARAUS folds 1–5 and tested on fold 0.</li>
+        <li>Hearing models: all sounds resampled to 16 kHz mono and matched in RMS level. TRIBE responses averaged over time; readouts are ridge (TRIBE: 50 principal components). Scores are 10-fold out-of-fold correlations, averaged over 5 repeats.</li>
+        <li>Region analysis: partial correlation of each atlas region's predicted response with comfort, controlling for loudness.</li>
+      </ul>
+    </details>
+  </section>
+</div>
+<div id="tip" hidden></div>
+
+<script>
+const D = {
+  hz: [100,200,400,500,800,1000,2000,3000,4000,6000,8000,10000,12000],
+  m: [0.279,0.281,0.273,0.273,0.263,0.268,0.255,0.237,0.240,0.196,0.199,0.170,0.148],
+  mse: [0.021,0.021,0.019,0.018,0.018,0.019,0.019,0.020,0.018,0.017,0.015,0.018,0.016],
+  n: [0.287,0.348,0.390,0.399,0.386,0.381,0.402,0.403,0.398,0.356,0.339,0.279,0.257],
+  nse: [0.028,0.032,0.033,0.034,0.032,0.031,0.036,0.039,0.040,0.033,0.033,0.032,0.033],
+  holm: [0.821,0.167,0.018,0.015,0.015,0.018,0.008,0.006,0.008,0.001,0.005,0.020,0.020],
+  cls: [["Birdsong",0.112,0.028,82],["Water",-0.111,0.028,82],["Wind",-0.259,0.037,41],["Traffic",-0.456,0.033,41],["Construction",-0.795,0.043,41]],
+  models: [["Sound type only",0.763,0.0],["Acoustic measures",0.634,0.239],["Brain model (TRIBE v2)",0.622,0.265],["Brain model + acoustics",0.724,0.370],["Auditory network (Wav2Vec-BERT)",0.866,0.648]],
+  still: [["Rain, 4 kHz top end",67.6,91.3,1],["Rain, 1.2 kHz top end",56.1,54.7,1],["White noise (control)",54.0,48.1,0],["Pink noise (control)",51.2,47.4,0],["Brown noise (control)",48.1,47.7,0],["Still noise, no hum",47.2,49.4,1],["Fan",47.4,46.7,1],["Ocean, 1.2 kHz top end",45.3,37.6,1],["Ocean, 4 kHz top end",39.4,41.1,1],["Current default attack sound",35.9,53.7,1],["Still noise, with hum",17.0,51.7,1]]
+};
+const NS = 'http://www.w3.org/2000/svg';
+const el = (t, a = {}, p) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; };
+const tip = document.getElementById('tip');
+function hover(node, text) {
+  node.classList.add('hit');
+  node.addEventListener('pointermove', e => { tip.textContent = text; tip.hidden = false; const x = Math.min(e.clientX + 14, innerWidth - 270); tip.style.left = x + 'px'; tip.style.top = (e.clientY + 14) + 'px'; });
+  node.addEventListener('pointerleave', () => { tip.hidden = true; });
+}
+const fmtHz = h => h >= 1000 ? (h / 1000) + 'k' : String(h);
+
+// Finding 1: line chart, log frequency axis
+(function () {
+  const W = 900, H = 330, L = 52, R = 150, T = 16, B = 40, svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Comfortable range by frequency for people with and without migraine' }, document.getElementById('c-mig'));
+  const x = h => L + (Math.log10(h) - 2) / (Math.log10(12000) - 2) * (W - L - R), y = v => T + (0.46 - v) / 0.46 * (H - T - B);
+  [0, 0.1, 0.2, 0.3, 0.4].forEach(v => { el('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'gridl' }, svg); el('text', { x: L - 8, y: y(v) + 4, 'text-anchor': 'end' }, svg).textContent = v.toFixed(1); });
+  D.hz.forEach(h => { if ([100, 200, 500, 1000, 2000, 4000, 8000, 12000].includes(h)) el('text', { x: x(h), y: H - B + 18, 'text-anchor': 'middle' }, svg).textContent = fmtHz(h); });
+  el('text', { x: (L + W - R) / 2, y: H - 4, 'text-anchor': 'middle' }, svg).textContent = 'Tone frequency (Hz)';
+  el('line', { x1: L, x2: W - R, y1: y(0), y2: y(0), class: 'axis' }, svg);
+  for (const [key, se, col, name] of [['n', 'nse', 'var(--s2)', 'Without migraine'], ['m', 'mse', 'var(--s1)', 'With migraine']]) {
+    const up = D.hz.map((h, i) => `${x(h)},${y(D[key][i] + D[se][i])}`), dn = D.hz.map((h, i) => `${x(h)},${y(D[key][i] - D[se][i])}`).reverse();
+    el('polygon', { points: up.concat(dn).join(' '), fill: col, 'fill-opacity': 0.14, stroke: 'none' }, svg);
+    el('polyline', { points: D.hz.map((h, i) => `${x(h)},${y(D[key][i])}`).join(' '), fill: 'none', stroke: col, 'stroke-width': 2 }, svg);
+    D.hz.forEach((h, i) => { el('circle', { cx: x(h), cy: y(D[key][i]), r: 4, fill: col, stroke: 'var(--surface)', 'stroke-width': 2 }, svg); });
+    const last = D[key].length - 1; el('text', { x: x(12000) + 10, y: y(D[key][last]) + 4, class: 'lab' }, svg).textContent = name;
+  }
+  D.hz.forEach((h, i) => {
+    const r = el('rect', { x: x(h) - 14, y: T, width: 28, height: H - T - B, fill: 'transparent' }, svg);
+    hover(r, `${h} Hz · with migraine ${D.m[i].toFixed(2)} ± ${D.mse[i].toFixed(2)} · without ${D.n[i].toFixed(2)} ± ${D.nse[i].toFixed(2)} · corrected p = ${D.holm[i] < 0.001 ? '<0.001' : D.holm[i].toFixed(3)}`);
+  });
+})();
+
+// Horizontal bars helper (single series, signed or positive)
+function hbars(id, rows, { min, max, ticks, fmt, label, tipf, series = 'var(--s1)' }) {
+  const W = 900, rowH = 34, L = 250, R = 60, T = 8, B = 34, H = T + rows.length * rowH + B;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': label }, document.getElementById(id));
+  const x = v => L + (v - min) / (max - min) * (W - L - R);
+  ticks.forEach(v => { el('line', { x1: x(v), x2: x(v), y1: T, y2: H - B, class: v === 0 ? 'axis' : 'gridl' }, svg); el('text', { x: x(v), y: H - B + 18, 'text-anchor': 'middle' }, svg).textContent = fmt(v); });
+  rows.forEach((r, i) => {
+    const cy = T + i * rowH + rowH / 2, v = r[1], x0 = x(Math.max(min, 0)), x1 = x(v);
+    el('text', { x: L - 12, y: cy + 4, 'text-anchor': 'end', class: r.bold ? 'lab' : '' }, svg).textContent = r[0];
+    const bar = el('rect', { x: Math.min(x0, x1), y: cy - 9, width: Math.max(2, Math.abs(x1 - x0)), height: 18, rx: 4, fill: r.color || series }, svg);
+    el('text', { x: v >= 0 ? x1 + 8 : x1 - 8, y: cy + 4, 'text-anchor': v >= 0 ? 'start' : 'end' }, svg).textContent = fmt(v);
+    const hit = el('rect', { x: L, y: cy - rowH / 2, width: W - L - R, height: rowH, fill: 'transparent' }, svg); hover(hit, tipf(r));
+  });
+}
+hbars('c-cls', D.cls, { min: -0.9, max: 0.25, ticks: [-0.8, -0.6, -0.4, -0.2, 0, 0.2], fmt: v => (v > 0 ? '+' : '') + v.toFixed(2), label: 'Change in calm rating by sound type',
+  tipf: r => `${r[0]}: ${r[1] > 0 ? '+' : ''}${r[1].toFixed(2)} ± ${r[2].toFixed(2)} calm points (${r[3]} sounds)` });
+
+// Finding 3: paired dot/bar chart, two series per row
+(function () {
+  const rows = D.models, W = 900, rowH = 44, L = 250, R = 60, T = 8, B = 34, H = T + rows.length * rowH + B;
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Prediction accuracy by approach' }, document.getElementById('c-models'));
+  const x = v => L + v * (W - L - R);
+  [0, 0.2, 0.4, 0.6, 0.8, 1].forEach(v => { el('line', { x1: x(v), x2: x(v), y1: T, y2: H - B, class: v === 0 ? 'axis' : 'gridl' }, svg); el('text', { x: x(v), y: H - B + 18, 'text-anchor': 'middle' }, svg).textContent = v.toFixed(1); });
+  el('line', { x1: x(0.955), x2: x(0.955), y1: T, y2: H - B, stroke: 'var(--ink-3)', 'stroke-dasharray': '4 4' }, svg);
+  el('text', { x: x(0.955) - 4, y: T + 10, 'text-anchor': 'end' }, svg).textContent = 'ceiling';
+  rows.forEach((r, i) => {
+    const top = T + i * rowH + 6;
+    el('text', { x: L - 12, y: top + 18, 'text-anchor': 'end', class: i === rows.length - 1 ? 'lab' : '' }, svg).textContent = r[0];
+    [[r[1], 'var(--s1)', 0], [r[2], 'var(--s2)', 16]].forEach(([v, c, dy]) => {
+      el('rect', { x: x(0), y: top + dy, width: Math.max(2, x(v) - x(0)), height: 13, rx: 4, fill: c }, svg);
+      el('text', { x: x(v) + 6, y: top + dy + 11 }, svg).textContent = v.toFixed(2);
+    });
+    const hit = el('rect', { x: L, y: top - 4, width: W - L - R, height: rowH, fill: 'transparent' }, svg);
+    hover(hit, `${r[0]}: r = ${r[1].toFixed(2)} across all sounds, ${r[2].toFixed(2)} within the same sound type`);
+  });
+})();
+
+// Finding 5: Still sounds ranked
+hbars('c-still', D.still.map(r => Object.assign([...r], { color: r[3] ? 'var(--s1)' : 'var(--ink-3)', bold: r[0].startsWith('Rain, 4') || r[0].includes('with hum') })), {
+  min: 0, max: 100, ticks: [0, 25, 50, 75, 100], fmt: v => Math.round(v) + '', label: 'Predicted pleasantness percentile of Still sounds',
+  tipf: r => `${r[0]}: pleasantness ${r[1].toFixed(0)}th, calm ${r[2].toFixed(0)}th percentile of 287 natural sounds` });
+</script>
