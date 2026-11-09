@@ -57,9 +57,31 @@ jobs:
       - name: Generate the native Android project
         run: npx expo prebuild --platform android --no-install
         env: { CI: 1 }
+      # Gradle's own download server sometimes times out from CI: fetch it ourselves with retries,
+      # keep downloaded dependencies between runs, and let Gradle retry slow Maven downloads.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/gradle-dist
+          key: gradle-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: gradle-${{ runner.os }}-
+      - name: Download Gradle with retries
+        working-directory: android
+        run: |
+          props=gradle/wrapper/gradle-wrapper.properties
+          url=$(sed -n 's/^distributionUrl=//p' "$props" | sed 's#\\:#:#g')
+          mkdir -p ~/gradle-dist && file=~/gradle-dist/$(basename "$url")
+          [ -s "$file" ] || curl -fL --retry 8 --retry-all-errors --retry-delay 15 --connect-timeout 30 --max-time 900 -o "$file" "$url"
+          sed -i "s#^distributionUrl=.*#distributionUrl=file\\://$file#" "$props"
+          sed -i 's/^networkTimeout=.*/networkTimeout=120000/' "$props"
       - name: Build the release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+        run: >-
+          ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a
+          -Dorg.gradle.internal.http.connectionTimeout=120000 -Dorg.gradle.internal.http.socketTimeout=120000
+          -Dorg.gradle.internal.repository.max.retries=6 -Dorg.gradle.internal.repository.initial.backoff=2000
       - uses: actions/upload-artifact@v4
         with:
           name: Still-android
