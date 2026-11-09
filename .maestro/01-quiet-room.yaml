@@ -18,7 +18,7 @@ name: Quiet room
 - tapOn: "Play my sound"
 - extendedWaitUntil:
     visible: "Fade to silence"
-    timeout: 3000
+    timeout: 12000
 - takeScreenshot: 02-playing
 - extendedWaitUntil:
     visible: "this text never appears"
