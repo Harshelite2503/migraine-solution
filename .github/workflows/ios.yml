@@ -15,6 +15,7 @@ on:
       - 'scripts/deploy-web.sh'
       - '.github/workflows/android.yml'
       - '.github/workflows/review-*.yml'
+      - '.github/workflows/security.yml'
   pull_request:
     paths-ignore:
       - 'research/**'
@@ -25,6 +26,7 @@ on:
       - 'scripts/deploy-web.sh'
       - '.github/workflows/android.yml'
       - '.github/workflows/review-*.yml'
+      - '.github/workflows/security.yml'
   workflow_dispatch:
 
 concurrency:
