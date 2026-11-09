@@ -7,6 +7,7 @@ import * as player from '../../lib/player';
 import { colors } from '../../lib/theme';
 import { Ionicons, tap } from '../../lib/ui';
 import { Pick } from './Choices';
+import { track } from '../../lib/activity';
 
 type Texture = NonNullable<Intake['texture']>;
 const TEXTURES: { value: Texture; label: string; note?: string; icon: React.ComponentProps<typeof Ionicons>['name'] }[] = [
@@ -22,6 +23,7 @@ function TexturePick({ profile, onChange }: { profile: Profile; onChange: (p: Pr
   const chosen = profile.intake.texture;
   useEffect(() => () => { player.stop(0.3); }, []);
   const preview = async (t: Texture) => {
+    track('texture_preview', { texture: t });
     if (hearing === t) { player.stop(0.5); setHearing(null); return; }
     setHearing(t);
     const base = recipeFor(profile, 'normal').recipe;
@@ -50,7 +52,7 @@ function TexturePick({ profile, onChange }: { profile: Profile; onChange: (p: Pr
                   <Ionicons name={hearing === t.value ? 'stop' : 'play'} size={16} color={colors.accent} />
                 </Pressable>
                 <Pressable accessibilityRole="radio" accessibilityLabel={`Choose ${t.label}`} accessibilityState={{ checked: on }} onPressIn={tap}
-                  onPress={() => onChange({ ...profile, intake: { ...profile.intake, texture: t.value } })}
+                  onPress={() => { track('texture_pick', { texture: t.value }); onChange({ ...profile, intake: { ...profile.intake, texture: t.value } }); }}
                   style={{ flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: on ? colors.accent : colors.surfaceStrong }}>
                   <Text style={{ color: on ? colors.bgTop : colors.ink, fontSize: 13, fontWeight: '600' }}>{on ? 'Chosen' : 'Choose'}</Text>
                 </Pressable>

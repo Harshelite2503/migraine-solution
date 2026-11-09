@@ -4,19 +4,24 @@ import { Share, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { episodes, freshJournal, metrics, pilotSummary, sanitizeJournal } from '../engine/journal-store.js';
 import { clearJournal, loadJournal, saveJournal, type Journal } from '../lib/storage';
-import { Button, confirmAction, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
+import { clearActivity, loadActivity, summarize } from '../lib/activity';
+import { Button, Columns, confirmAction, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
 import { colors, fonts } from '../lib/theme';
 
 const CHOICES = { silence: 'Dark screen, no sound', comfort: 'My comfort sound', softer: 'Softer and darker' } as const;
 const FOLLOWS = { better: 'A bit easier', same: 'About the same', worse: 'Worse' } as const;
 const STATES: Record<string, string> = { attack: 'hushed sound', warning: 'gentle sound', recovering: 'gentle sound', normal: 'full sound' };
 const DAY = 864e5;
+const SOUNDS = { Hushed: 'Hushed', Gentle: 'Gentle', Full: 'Full' } as const;
+const TEXTURES = { rain: 'Rain', ocean: 'Ocean', fan: 'Fan', plain: 'Plain hush' } as const;
+const round = (o: Record<string, number>) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Math.round(v)]));
 
 export default function JournalScreen() {
   const [journal, setJournal] = useState<Journal>(freshJournal() as Journal);
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
-  useFocusEffect(useCallback(() => { loadJournal().then(setJournal); }, []));
+  const [act, setAct] = useState(summarize([]));
+  useFocusEffect(useCallback(() => { loadJournal().then(setJournal); loadActivity().then(a => setAct(summarize(a, 30))).catch(() => {}); }, []));
 
   const m = metrics(journal);
   const eps = episodes(journal).reverse();
@@ -46,13 +51,14 @@ export default function JournalScreen() {
   };
 
   const clear = () => confirmAction('Clear your journal?', 'This removes every episode from this device. It cannot be undone.', 'Clear',
-    async () => { await clearJournal(); setJournal(freshJournal() as Journal); setNote('Journal cleared.'); });
+    async () => { await clearJournal(); await clearActivity(); setJournal(freshJournal() as Journal); setAct(summarize([])); setNote('Journal cleared.'); });
 
   return (
     <Screen>
+        <Columns rightWidth={460} left={<>
         <Eyebrow>Still · journal</Eyebrow>
         <H1>Your hard days</H1>
-        <Muted>Each time you use the quiet room, Still notes the date, what you chose and for how long. Sessions within 12 hours count as one episode. Nothing leaves this phone unless you share it.</Muted>
+        <Muted>Each time you use the quiet room, Still notes the date, what you chose and for how long. Sessions within 12 hours count as one episode. Nothing leaves this device unless you share it.</Muted>
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           <Stat value={m.usedEpisodes} label="episodes with Still, last 60 days" />
@@ -70,6 +76,25 @@ export default function JournalScreen() {
           <Muted small>Feeling better afterwards does not show the sound caused it. Headaches also ease with time, rest and medicine.</Muted>
         </View>
 
+        <View style={styles.card}>
+          <H2>Your activity, last 30 days</H2>
+          {act.plays === 0 ? <Muted>Nothing yet. What you play, for how long, and how it felt will show here.</Muted> : (
+            <>
+              <Text style={{ color: colors.ink, fontSize: 14 }}>{`${Math.round(act.listeningMin)} minutes of sound · ${act.plays} ${act.plays === 1 ? 'play' : 'plays'}${act.darkScreens ? ` · ${act.darkScreens} dark screen${act.darkScreens === 1 ? '' : 's'}` : ''}`}</Text>
+              <Text style={{ color: colors.muted, fontSize: 13, marginTop: 6 }}>Minutes by sound</Text>
+              <Bars counts={round(act.minutes)} labels={SOUNDS} />
+              <Text style={{ color: colors.muted, fontSize: 13 }}>Minutes by texture</Text>
+              <Bars counts={round(act.textures)} labels={TEXTURES} />
+              {Object.entries(act.outcomes).map(([sound, o]) => (
+                <Text key={sound} style={{ color: colors.ink, fontSize: 13 }}>{`${sound}: easier ${o.better}, same ${o.same}, worse ${o.worse}`}</Text>
+              ))}
+              {act.helpedMost && <Text style={{ color: colors.accent, fontSize: 13.5, marginTop: 4 }}>{`${act.helpedMost.sound} has helped you most so far.`}</Text>}
+            </>
+          )}
+          <Muted small>Recorded only on this device, to help Still suit you. Clearing the journal clears it too.</Muted>
+        </View>
+
+        </>} right={<>
         <View style={styles.card}>
           <H2>Episodes ({eps.length})</H2>
           {eps.length === 0 && <Muted>No episodes yet. When a headache starts, open the Quiet room.</Muted>}
@@ -106,6 +131,7 @@ export default function JournalScreen() {
           <Button kind="quiet" label="Clear journal" onPress={clear} />
         </View>
         {note ? <Muted>{note}</Muted> : null}
+        </>} />
     </Screen>
   );
 }

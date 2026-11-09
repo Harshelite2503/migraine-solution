@@ -5,7 +5,26 @@ name: iOS build
 on:
   push:
     branches: [main]
+    paths-ignore:
+      # Changes that cannot affect the phone app: skip the ~20 minute iPhone build and tests.
+      - 'research/**'
+      - 'server/**'
+      - '**/*.md'
+      - '**/*.web.ts'
+      - '**/*.web.tsx'
+      - 'scripts/deploy-web.sh'
+      - '.github/workflows/android.yml'
+      - '.github/workflows/review-*.yml'
   pull_request:
+    paths-ignore:
+      - 'research/**'
+      - 'server/**'
+      - '**/*.md'
+      - '**/*.web.ts'
+      - '**/*.web.tsx'
+      - 'scripts/deploy-web.sh'
+      - '.github/workflows/android.yml'
+      - '.github/workflows/review-*.yml'
   workflow_dispatch:
 
 concurrency:

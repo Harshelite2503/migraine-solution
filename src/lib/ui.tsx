@@ -1,7 +1,7 @@
 // Shared UI pieces. Every pressable gives instant feedback (scale + a light haptic tap) on touch
 // down, before any slow work starts, so the app always feels responsive.
 import type { ReactNode } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -18,12 +18,34 @@ export function confirmAction(title: string, message: string, okLabel: string, o
 export const tick = () => { Haptics.selectionAsync().catch(() => {}); };
 export { Ionicons };
 
-export function Screen({ children, scrollRef, overlay }: { children: ReactNode; scrollRef?: any; overlay?: ReactNode }) {
+/**
+ * True only in a desktop-width browser window. Phones (and narrow browsers) always get false, so
+ * every wide-only layout below leaves the iPhone and Android app exactly as it was.
+ */
+export function useWide() {
+  const { width } = useWindowDimensions();
+  return Platform.OS === 'web' && width >= 960;
+}
+
+/** Two columns side by side on a wide browser window; on phones, `left` then `right`, one column. */
+export function Columns({ left, right, rightWidth = 440, gap = 40, align = 'flex-start' }: { left: ReactNode; right: ReactNode; rightWidth?: number; gap?: number; align?: 'flex-start' | 'center' }) {
+  const wide = useWide();
+  if (!wide) return <>{left}{right}</>;
+  return (
+    <View style={{ flexDirection: 'row', gap, alignItems: align }}>
+      <View style={{ flex: 1, minWidth: 0, gap: 16 }}>{left}</View>
+      <View style={{ width: rightWidth, gap: 16 }}>{right}</View>
+    </View>
+  );
+}
+
+export function Screen({ children, scrollRef, overlay, center }: { children: ReactNode; scrollRef?: any; overlay?: ReactNode; center?: boolean }) {
+  const wide = useWide();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <LinearGradient colors={[colors.bgTop, colors.bgBottom]} style={StyleSheet.absoluteFill} />
       <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-        <ScrollView ref={scrollRef} contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>
+        <ScrollView ref={scrollRef} contentContainerStyle={wide ? [styles.screen, styles.screenWide, center && { justifyContent: 'center' }] : styles.screen} keyboardShouldPersistTaps="handled">{children}</ScrollView>
       </SafeAreaView>
       {overlay}
     </View>
@@ -75,6 +97,7 @@ export const Muted = ({ children, small }: { children: ReactNode; small?: boolea
 
 export const styles = StyleSheet.create({
   screen: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 48, gap: 16 },
+  screenWide: { width: '100%', maxWidth: 1160, alignSelf: 'center', paddingHorizontal: 56, paddingTop: 48, paddingBottom: 72, gap: 20 },
   h1: { color: colors.ink, fontFamily: fonts.display, fontSize: 34, letterSpacing: -0.5, marginTop: 6 },
   h2: { color: colors.ink, fontFamily: fonts.display, fontSize: 21 },
   eyebrow: { color: colors.muted, fontSize: 11.5, letterSpacing: 1.6, textTransform: 'uppercase' },

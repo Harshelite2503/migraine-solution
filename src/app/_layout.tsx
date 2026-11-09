@@ -3,18 +3,23 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, tabBarStyle } from '../lib/theme';
+import { useWide } from '../lib/ui';
+import { Sidebar } from '../components/Sidebar';
 
 const icon = (name: keyof typeof Ionicons.glyphMap) => ({ color, size }: { color: unknown; size: number }) => <Ionicons name={name} size={size} color={color as string} />;
 
 export default function Layout() {
-  // On the web, a phone-width column centred on the page, so it reads the same on a laptop.
-  const frame = Platform.OS === 'web' ? { flex: 1, width: '100%' as const, maxWidth: 520, alignSelf: 'center' as const } : { flex: 1 };
+  // Desktop browser: full width with a sidebar. Narrow browser: a phone-width column. Phones: as is.
+  const wide = useWide();
+  const frame = Platform.OS === 'web' && !wide ? { flex: 1, width: '100%' as const, maxWidth: 520, alignSelf: 'center' as const } : { flex: 1 };
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
     <View style={frame}>
       <StatusBar style="light" />
       <Tabs
+        {...(wide ? { tabBar: () => <Sidebar /> } : {})}
         screenOptions={{
+          ...(wide ? { tabBarPosition: 'left' as const } : {}),
           headerShown: false,
           sceneStyle: { backgroundColor: colors.bg },
           tabBarStyle,

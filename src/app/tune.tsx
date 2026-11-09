@@ -13,8 +13,9 @@ import { Tests } from '../components/build/Tests';
 import { Refine } from '../components/build/Refine';
 import { RecipeCard } from '../components/build/RecipeCard';
 import { SupportCard } from '../components/SupportCard';
-import { Button, confirmAction, Eyebrow, H1, Ionicons, Muted, Screen, styles, tap, type IconName } from '../lib/ui';
+import { Button, Columns, confirmAction, Eyebrow, H1, H2, Ionicons, Muted, Screen, styles, tap, useWide, type IconName } from '../lib/ui';
 import { colors } from '../lib/theme';
+import { track } from '../lib/activity';
 
 const CORE_TESTS = ['tilt', 'cutoff', 'tonal'];
 const MORE_TESTS = ['humHz', 'swellDb', 'width'];
@@ -39,6 +40,7 @@ export default function MySound() {
   const [profile, setProfile] = useState<Profile>(freshProfile());
   const [open, setOpen] = useState<StepKey | null>(null);
   const [deeper, setDeeper] = useState(false);
+  const wide = useWide();
   const scroll = useRef<any>(null);
   useFocusEffect(useCallback(() => {
     loadProfile().then(p => { setProfile(p); setOpen(o => o ?? (quickDone(p) ? null : 'quick')); });
@@ -77,7 +79,7 @@ export default function MySound() {
   const row = (s: Step) => (
     <View key={s.key} style={[styles.card, open === s.key && { borderColor: 'rgba(169,199,155,0.35)' }]}>
       <Pressable accessibilityRole="button" accessibilityLabel={s.title} accessibilityState={{ expanded: open === s.key }} onPressIn={tap}
-        onPress={() => { player.stop(0.3); setOpen(open === s.key ? null : s.key); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        onPress={() => { player.stop(0.3); if (open !== s.key) track('step_open', { step: s.key }); setOpen(open === s.key ? null : s.key); }} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <View style={{ width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: done[s.key] ? 'rgba(169,199,155,0.14)' : colors.surfaceStrong }}>
           <Ionicons name={done[s.key] ? 'checkmark' : s.icon} size={19} color={done[s.key] ? colors.accent : colors.moon} />
         </View>
@@ -93,6 +95,7 @@ export default function MySound() {
 
   return (
     <Screen scrollRef={scroll}>
+      <Columns left={<>
       <Eyebrow>Still · my sound</Eyebrow>
       <H1>Make it yours</H1>
       <Muted>Two short steps, best on a calmer day. Everything stays on this device.</Muted>
@@ -103,8 +106,37 @@ export default function MySound() {
         <Ionicons name={deeper ? 'chevron-up' : 'chevron-down'} size={16} color={colors.muted} />
       </Pressable>
       {deeper && DEEPER.map(row)}
+      </>} right={<>
+      {wide && <HowItWorks />}
       <SupportCard />
       <Muted small>Preferring a sound is not the same as it reducing pain. Still is for comfort and does not diagnose, treat or prevent migraine.</Muted>
+      </>} />
     </Screen>
+  );
+}
+
+/** Desktop-only side panel: what the setup does, in three steps. */
+function HowItWorks() {
+  const steps: [IconName, string, string][] = [
+    ['flash-outline', 'Tell it what hurts', 'Five taps about the sounds that bother you during a headache.'],
+    ['headset-outline', 'Choose by ear', 'Short "which feels calmer?" choices tune how dark, soft and steady your sound is.'],
+    ['moon-outline', 'Press play in the dark', 'One button, a sound made for you, and a screen that dims itself.'],
+  ];
+  return (
+    <View style={[styles.card, { gap: 16 }]}>
+      <H2>How it works</H2>
+      {steps.map(([icon, title, body]) => (
+        <View key={title} style={{ flexDirection: 'row', gap: 14 }}>
+          <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceStrong }}>
+            <Ionicons name={icon} size={18} color={colors.moon} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: colors.ink, fontSize: 15 }}>{title}</Text>
+            <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 19 }}>{body}</Text>
+          </View>
+        </View>
+      ))}
+      <Text style={{ color: colors.faint, fontSize: 12, lineHeight: 18 }}>Your answers and your sound stay on this device.</Text>
+    </View>
   );
 }

@@ -10,7 +10,8 @@ import { pendingFollowUp } from '../engine/journal-store.js';
 import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
 import { loadJournal, loadProfile, loadQuietMode, saveJournal, saveProfile, saveQuietMode, type Session } from '../lib/storage';
 import * as player from '../lib/player';
-import { Button, Card, Ionicons, Muted, Screen, Segmented, tap, tick, type IconName } from '../lib/ui';
+import { loadActivity, summarize, track } from '../lib/activity';
+import { Button, Card, Ionicons, Muted, Screen, Segmented, tap, tick, type IconName, Columns, useWide } from '../lib/ui';
 import { colors, tabBarStyle } from '../lib/theme';
 
 type Choice = Session['choice'];
@@ -36,6 +37,7 @@ export default function QuietRoom() {
   const [checkFor, setCheckFor] = useState<string | null>(null);
   const [status, setStatus] = useState('');
   const [showModes, setShowModes] = useState(false);
+  const [helped, setHelped] = useState<{ sound: string; better: number; total: number } | null>(null);
   const [autoDim, setAutoDim] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const live = useRef<Live | null>(null);
@@ -49,6 +51,7 @@ export default function QuietRoom() {
     loadProfile().then(setProfile);
     loadQuietMode().then(m => { if (m === 'attack' || m === 'warning' || m === 'normal') setState(m); });
     loadJournal().then(j => { const p = pendingFollowUp(j); if (p && !live.current) setCheckFor(p.id); });
+    loadActivity().then(a => setHelped(summarize(a, 90).helpedMost)).catch(() => {});
   }, []));
   useEffect(() => () => { player.stop(0.5); }, []);
   useEffect(() => {
@@ -99,6 +102,7 @@ export default function QuietRoom() {
     if (sleep.current) { clearTimeout(sleep.current); sleep.current = null; }
     if (!s) return;
     const durationS = Math.round((Date.now() - s.startMs) / 1000);
+    track('stop', { state: s.state, choice: s.choice, durationS, texture: s.choice === 'silence' ? 'silence' : recipes[s.choice].texture, worse: s.worse });
     if (durationS < 3 && !s.worse) return;
     const journal = await loadJournal();
     journal.sessions.push({ id: s.id, at: s.at, state: s.state, choice: s.choice, durationS, levelDb: s.levelDb, worse: s.worse, followUp: s.worse ? 'worse' : null });
@@ -114,6 +118,7 @@ export default function QuietRoom() {
     const previous = live.current; live.current = null;
     if (previous) { live.current = previous; end({ ask: false }); }
     begin(choice, r.levelDb);
+    track('play', { state, choice, texture: r.texture, tiltDbPerOct: Math.round(r.tiltDbPerOct * 10) / 10, cutoffHz: Math.round(r.cutoffHz), tonal: Math.round(r.tonal * 100) / 100, levelDb: Math.round(r.levelDb), timerMin: Number(timer) });
     try {
       const uri = await player.recipeFile(r);
       if (live.current?.choice !== choice) return;
@@ -131,12 +136,13 @@ export default function QuietRoom() {
     player.stop(3); setPlaying(null); setPreparing(false); setStatus('Fading to silence.'); end();
     player.prewarm([recipes.comfort, recipes.softer], 8000); // get Softer ready again once things are quiet
   };
-  const darkOnly = () => { player.stop(2); setPlaying(null); end({ ask: false }); setCheckFor(null); begin('silence', null); setDark(true); };
+  const darkOnly = () => { track('dark_screen', { state }); player.stop(2); setPlaying(null); end({ ask: false }); setCheckFor(null); begin('silence', null); setDark(true); };
   const leaveDark = () => { setDark(false); if (live.current?.choice === 'silence') end(); };
 
   const worse = async () => {
     player.stop(1.5); setPlaying(null); setPreparing(false);
     const s = live.current?.state ?? state;
+    track('worse', { state: s, choice: live.current?.choice ?? null });
     if (live.current) live.current.worse = true;
     await end({ ask: false });
     const { profile: next, loweredDb } = lowerState(await loadProfile(), s);
@@ -146,6 +152,7 @@ export default function QuietRoom() {
 
   const answer = async (follow: 'better' | 'same' | 'worse' | 'skipped') => {
     const id = checkFor; setCheckFor(null);
+    track('check_in', { answer: follow, state });
     setStatus(follow === 'skipped' ? 'Okay. Rest well.' : 'Noted. Rest well.');
     const journal = await loadJournal();
     const s = journal.sessions.find(x => x.id === id);
@@ -154,9 +161,13 @@ export default function QuietRoom() {
 
   const changeState = (next: State) => {
     if (playing || live.current) { player.stop(2); setPlaying(null); end({ ask: false }); setStatus('Switched. Press play to hear it.'); }
+    track('sound_change', { from: state, to: next });
     setState(next); saveQuietMode(next);
   };
 
+  const wide = useWide();
+  const orbSize = wide ? 340 : 248, coreSize = wide ? 256 : 186;
+  const modesOpen = showModes || wide;
   const prog = progress(profile);
   const orbOn = playingNow;
   const built = prog.steps.quick || Object.keys(profile.tests).length > 0;
@@ -182,10 +193,11 @@ export default function QuietRoom() {
   ) : null;
 
   return (
-    <Screen overlay={dimLayer} scrollRef={scroll}>
+    <Screen overlay={dimLayer} scrollRef={scroll} center>
       <View onTouchStart={armDim} style={{ gap: 18 }}>
+        <Columns align="center" gap={64} rightWidth={420} left={<>
         <View style={{ gap: 6, marginTop: 8 }}>
-          <Text style={{ color: dim.text, fontFamily: 'Georgia', fontSize: 30 }}>Rest here.</Text>
+          <Text style={{ color: dim.text, fontFamily: 'Georgia', fontSize: wide ? 46 : 30 }}>Rest here.</Text>
           <Text style={{ color: dim.soft, fontSize: 15, lineHeight: 22 }}>Breathe out slowly. Press play when you're ready.</Text>
         </View>
 
@@ -195,9 +207,9 @@ export default function QuietRoom() {
             accessibilityRole="button" accessibilityLabel={preparing ? 'Getting ready' : orbOn ? 'Fade to silence' : 'Play my sound'}
             onPressIn={tap} onPress={() => (orbOn ? stopSound() : playSound('comfort'))}
             style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-            <View style={{ width: 248, height: 248, alignItems: 'center', justifyContent: 'center' }}>
-              <Animated.View style={{ position: 'absolute', width: 248, height: 248, borderRadius: 124, backgroundColor: `${dim.glow}0.10)`, opacity: orbOn ? haloOpacity : 0.35, transform: [{ scale: orbOn ? haloScale : 1 }] }} />
-              <View style={{ width: 186, height: 186, borderRadius: 93, alignItems: 'center', justifyContent: 'center', backgroundColor: `${dim.glow}0.08)`, borderWidth: 1, borderColor: `${dim.glow}0.22)` }}>
+            <View style={{ width: orbSize, height: orbSize, alignItems: 'center', justifyContent: 'center' }}>
+              <Animated.View style={{ position: 'absolute', width: orbSize, height: orbSize, borderRadius: orbSize / 2, backgroundColor: `${dim.glow}0.10)`, opacity: orbOn ? haloOpacity : 0.35, transform: [{ scale: orbOn ? haloScale : 1 }] }} />
+              <View style={{ width: coreSize, height: coreSize, borderRadius: coreSize / 2, alignItems: 'center', justifyContent: 'center', backgroundColor: `${dim.glow}0.08)`, borderWidth: 1, borderColor: `${dim.glow}0.22)` }}>
                 <Ionicons name={orbOn ? 'pause' : 'play'} size={40} color="#9fbb93" style={{ marginLeft: orbOn ? 0 : 5 }} />
                 <Text style={{ color: dim.text, fontSize: 14.5, marginTop: 8 }}>{preparing ? 'Getting ready…' : orbOn ? 'Tap to fade out' : 'My sound'}</Text>
               </View>
@@ -207,6 +219,7 @@ export default function QuietRoom() {
             {built ? `Your ${recipes.comfort.texture !== 'none' ? `${recipes.comfort.texture} ` : ''}sound, ${quieter} dB quieter than usual` : `A gentle, dark sound, ${quieter} dB quieter than usual`}
           </Text>
         </View>
+        </>} right={<>
 
         {checkFor && !playing && (
           <Card>
@@ -230,16 +243,17 @@ export default function QuietRoom() {
         {/* Quiet settings: two small lines, no counters */}
         <View style={{ gap: 4, alignItems: 'center' }}>
           <Pressable accessibilityRole="button" accessibilityLabel={`${timerLabel}. Change`} onPressIn={tick}
-            onPress={() => setTimer(TIMERS[(TIMERS.indexOf(timer) + 1) % TIMERS.length])} hitSlop={10}>
+            onPress={() => { const t = TIMERS[(TIMERS.indexOf(timer) + 1) % TIMERS.length]; setTimer(t); track('timer_change', { timerMin: Number(t) }); }} hitSlop={10}>
             <Text style={{ color: dim.faint, fontSize: 13 }}>{timerLabel} · change</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={`Sound: ${mode.short}. Try another`} onPressIn={tick} onPress={() => { const open = !showModes; setShowModes(open); if (open) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60); }} hitSlop={10}>
             <Text style={{ color: dim.faint, fontSize: 13 }}>{mode.short} · try another</Text>
           </Pressable>
         </View>
-        {showModes && (
+        {modesOpen && (
           <View style={{ gap: 8 }}>
             <Text style={{ color: dim.soft, fontSize: 13.5, textAlign: 'center' }}>Try one of these. Pick whichever feels best right now.</Text>
+            {helped && <Text style={{ color: dim.faint, fontSize: 12.5, textAlign: 'center' }}>{`${helped.sound} has helped you most: easier ${helped.better} of ${helped.total} times.`}</Text>}
             <Segmented options={STATES} value={state} onChange={v => { changeState(v); setShowModes(false); }} />
           </View>
         )}
@@ -247,6 +261,7 @@ export default function QuietRoom() {
         <Text style={{ color: dim.faint, fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 6 }}>
           Made on this device; nothing leaves it. For comfort, not treatment. A sudden, new or worst-ever headache, or weakness, numbness or confusion: get medical help.
         </Text>
+        </>} />
       </View>
 
     </Screen>

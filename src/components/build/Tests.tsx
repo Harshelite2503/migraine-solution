@@ -8,6 +8,7 @@ import { recipeFor, type Profile, type Tests as TestsT } from '../../lib/profile
 import * as player from '../../lib/player';
 import { Button, Muted } from '../../lib/ui';
 import { colors } from '../../lib/theme';
+import { track } from '../../lib/activity';
 
 type Props = { profile: Profile; onChange: (p: Profile) => void; keys?: string[] };
 type Stair = ReturnType<typeof startStaircase>;
@@ -75,6 +76,7 @@ export function Tests({ profile, onChange, keys }: Props) {
     run.current++; player.stop(0.3); setNow(null);
     const mapped = c === 'same' || c === 'neither' ? c : (c === 'a') !== flip ? 'lower' : 'higher';
     const next = answer(test, stair, mapped as any);
+    track('test_answer', { test: test.key, choice: String(mapped), round: stair.trials + 1 });
     setHeard(false); setFlip(Math.random() < 0.5);
     if (next.done) {
       const res = result(next);
