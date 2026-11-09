@@ -1,8 +1,8 @@
 // Privacy policy text, shared by the in-app overlay (components/PrivacySheet.tsx) and the public
 // web page (scripts/privacy-html.mjs -> /privacy.html, the URL for the app store listings).
-// A draft for the owner to review; [contact email] must be filled in before publishing.
+// A draft for the owner to review; 1996shivankursharma@gmail.com must be filled in before publishing.
 export const PRIVACY_UPDATED = 'November 2026';
-export const PRIVACY_CONTACT = '[contact email]';
+export const PRIVACY_CONTACT = '1996shivankursharma@gmail.com';
 /** @type {[string, string[]][]} */
 export const PRIVACY_SECTIONS = [
   ['On your device', [
