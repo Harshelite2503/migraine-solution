@@ -70,8 +70,8 @@ export function Screen({ children, scrollRef, overlay, center }: { children: Rea
   );
 }
 
-export function Button({ label, onPress, kind = 'outline', disabled, style, icon, hint }: {
-  label: string; onPress: () => void; kind?: 'primary' | 'outline' | 'quiet' | 'warn'; disabled?: boolean; style?: ViewStyle; icon?: IconName; hint?: string;
+export function Button({ label, onPress, kind = 'outline', disabled, style, icon, hint, fit }: {
+  label: string; onPress: () => void; kind?: 'primary' | 'outline' | 'quiet' | 'warn'; disabled?: boolean; style?: ViewStyle; icon?: IconName; hint?: string; fit?: boolean;
 }) {
   const fg = kind === 'primary' ? colors.bgTop : kind === 'warn' ? colors.warn : colors.ink;
   return (
@@ -82,7 +82,7 @@ export function Button({ label, onPress, kind = 'outline', disabled, style, icon
         pressed && { transform: [{ scale: 0.97 }], opacity: 0.85 }, disabled && { opacity: 0.38 }, style]}
     >
       {icon ? <Ionicons name={icon} size={18} color={fg} /> : null}
-      <Text style={[styles.buttonText, { color: fg }]}>{label}</Text>
+      <Text style={[styles.buttonText, { color: fg }]} {...(fit ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.8 } : {})}>{label}</Text>
     </Pressable>
   );
 }

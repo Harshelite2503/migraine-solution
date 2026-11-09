@@ -108,7 +108,7 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
         }}>
           <View style={{ position: 'absolute', width: size - 18, height: size - 18, borderRadius: (size - 18) / 2, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.025)' }} />
           <Animated.View style={{ position: 'absolute', width: size, height: size, transform: [{ rotate }] }}>
-            <View style={{ position: 'absolute', top: 10, left: size / 2 - 2, width: 4, height: size * 0.2, borderRadius: 2, backgroundColor: colors.moon }} />
+            <View style={{ position: 'absolute', top: 7, left: size / 2 - 4, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.moon }} />
           </Animated.View>
           <Text style={{ color: colors.ink, fontSize: size > 150 ? 17 : 13.5, fontWeight: '600', textAlign: 'center', paddingHorizontal: 12 }} numberOfLines={1}>{stops[value]}</Text>
         </Animated.View>

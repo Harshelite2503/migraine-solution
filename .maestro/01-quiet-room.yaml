@@ -13,6 +13,7 @@ name: Quiet room
 - extendedWaitUntil:
     visible: "What's hardest on your ears?"
     timeout: 6000
+- assertVisible: "Not sure"
 - takeScreenshot: 00b-question
 - tapOn: "Hiss and high sounds"
 - extendedWaitUntil:

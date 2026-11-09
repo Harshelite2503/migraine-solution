@@ -57,9 +57,9 @@ export default function JournalScreen() {
           <H2>Headache without Still?</H2>
           <Muted>One tap, no details.</Muted>
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 6 }}>
-            <Button label="Today" onPress={() => addMissed(0)} style={{ flex: 1 }} />
-            <Button label="Yesterday" onPress={() => addMissed(1)} style={{ flex: 1 }} />
-            <Button label="2 days ago" onPress={() => addMissed(2)} style={{ flex: 1 }} />
+            <Button fit label="Today" onPress={() => addMissed(0)} style={{ flex: 1, paddingHorizontal: 8 }} />
+            <Button fit label="Yesterday" onPress={() => addMissed(1)} style={{ flex: 1, paddingHorizontal: 8 }} />
+            <Button fit label="2 days ago" onPress={() => addMissed(2)} style={{ flex: 1, paddingHorizontal: 8 }} />
           </View>
         </View>
         {note ? <Muted>{note}</Muted> : null}
