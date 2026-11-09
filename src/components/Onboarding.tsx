@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Profile } from '../lib/profile';
 import { colors, fonts } from '../lib/theme';
-import { Button, Ionicons, tap } from '../lib/ui';
+import { Button, Ionicons, tap, useReduceMotion } from '../lib/ui';
 import { track } from '../lib/activity';
 import { PreviewButton, ProfileDial, TextureTiles, Tile, usePreview, withHardest, type Hardest } from './Studio';
 
@@ -22,12 +22,14 @@ export function Onboarding({ profile, onChange, onDone }: { profile: Profile; on
   const [hardest, setHardest] = useState<Hardest | null>(null);
   const preview = usePreview();
   const enter = useRef(new Animated.Value(1)).current;
+  const reduce = useReduceMotion();
 
-  // Each step glides up and fades in, like a sheet settling.
+  // Each step glides up and fades in, like a sheet settling (a plain cut with Reduce Motion on).
   useEffect(() => {
+    if (reduce) { enter.setValue(1); return; }
     enter.setValue(0);
     Animated.spring(enter, { toValue: 1, useNativeDriver: true, speed: 14, bounciness: 4 }).start();
-  }, [step]);
+  }, [step, reduce]);
 
   const update = (p: Profile) => { onChange(p); preview.update(p); };
   const go = (n: number) => { track('onboarding_step', { step: n }); setStep(n); };
@@ -122,16 +124,18 @@ function Dots({ step }: { step: number }) {
 /** A slow glow, about six breaths a minute. */
 function BreathingOrb() {
   const breath = useRef(new Animated.Value(0)).current;
+  const reduce = useReduceMotion();
   useEffect(() => {
+    if (reduce) { breath.setValue(0.5); return; }
     const loop = Animated.loop(Animated.sequence([
       Animated.timing(breath, { toValue: 1, duration: 4500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       Animated.timing(breath, { toValue: 0, duration: 5500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
-  }, []);
+  }, [reduce]);
   return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', height: 200 }}>
+    <View style={{ alignItems: 'center', justifyContent: 'center', height: 200 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Animated.View style={{ position: 'absolute', width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(160,190,150,0.10)',
         opacity: breath.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.8] }), transform: [{ scale: breath.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1.06] }) }] }} />
       <View style={{ width: 132, height: 132, borderRadius: 66, backgroundColor: 'rgba(160,190,150,0.08)', borderWidth: 1, borderColor: 'rgba(160,190,150,0.22)', alignItems: 'center', justifyContent: 'center' }}>

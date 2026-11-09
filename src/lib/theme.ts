@@ -11,7 +11,7 @@ export const colors = {
   line: 'rgba(255,255,255,0.09)',
   ink: '#dbe4d8',
   muted: '#8d9b92',
-  faint: '#5f6c65',
+  faint: '#7d8a81',       // the dimmest text that still reads clearly (4.5:1)
   accent: '#a9c79b',       // sage
   accentDeep: '#3f5f4b',
   moon: '#cdbb8c',         // warm moonlight, used sparingly

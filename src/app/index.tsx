@@ -27,7 +27,7 @@ const STATES: { value: State; label: string; icon: IconName; short: string }[] =
 const TIMERS = ['30', '60', '15', '0'];
 const AUTO_DIM_MS = 15000;
 // Very dim text for a dark room during a headache.
-const dim = { text: '#a9b3a6', soft: '#78857c', faint: '#56625a', glow: 'rgba(160,190,150,' };
+const dim = { text: '#a9b3a6', soft: '#7d8a81', faint: '#7d8a81', glow: 'rgba(160,190,150,' };
 
 export default function QuietRoom() {
   const [profile, setProfile] = useState<Profile>(freshProfile());
@@ -99,7 +99,9 @@ export default function QuietRoom() {
   }, [profile, state]);
 
   // Prepare both sounds for this state while the screen is idle.
-  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer]); }, [recipes]);
+  // Also again when the first-run setup closes: its preview was playing, and background renders
+  // never compete with playback, so a sound changed during setup would otherwise not be ready.
+  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer], setup ? 700 : 150); }, [recipes, setup]);
 
   const begin = (choice: Choice, levelDb: number | null) => {
     const at = new Date();
@@ -261,7 +263,7 @@ export default function QuietRoom() {
           </Pressable>
         </View>
 
-        <Text style={{ color: dim.faint, fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 6 }}>
+        <Text style={{ color: dim.faint, fontSize: 12.5, lineHeight: 18, textAlign: 'center', marginTop: 6 }}>
           For comfort, not treatment. A sudden, new or worst-ever headache: get medical help.
         </Text>
         </>} />

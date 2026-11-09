@@ -109,7 +109,7 @@ export function Tile({ icon, label, sub, on, onPress, wide }: { icon: IconName; 
   return (
     <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: on }}
       onPressIn={() => { tap(); bounce(0.95); }} onPressOut={() => bounce(1)} onPress={onPress}
-      style={{ flexBasis: wide ? '100%' : '46%', flexGrow: 1 }}>
+      style={wide ? { alignSelf: 'stretch' } : { flexBasis: '46%', flexGrow: 1 }}>
       <Animated.View style={{
         transform: [{ scale }], borderRadius: 22, borderWidth: 1, padding: 16, gap: 10, minHeight: wide ? 0 : 104,
         flexDirection: wide ? 'row' : 'column', alignItems: wide ? 'center' : 'flex-start', justifyContent: wide ? 'flex-start' : 'space-between',
