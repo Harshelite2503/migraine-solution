@@ -6,7 +6,7 @@ export const JOURNAL_KEY = 'still-journal-v1';
 export const EPISODE_GAP_HOURS = 12;
 /** The pilot's main question: did someone come back to Still during separate headaches within this window? */
 export const WINDOW_DAYS = 60;
-export const STATES = ['attack', 'warning', 'recovering'];
+export const STATES = ['attack', 'warning', 'recovering', 'normal'];
 export const CHOICES = ['silence', 'comfort', 'softer'];
 export const FOLLOW_UPS = ['better', 'same', 'worse', 'skipped'];
 const MAX_SESSIONS = 1000, MAX_MISSED = 500;

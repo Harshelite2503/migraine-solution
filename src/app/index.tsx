@@ -8,17 +8,18 @@ import { applyAdjustments } from '../recipe/recipe.js';
 import { clampRecipe } from '../recipe/bounds.js';
 import { pendingFollowUp } from '../engine/journal-store.js';
 import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile, type State } from '../lib/profile';
-import { loadJournal, loadProfile, saveJournal, saveProfile, type Session } from '../lib/storage';
+import { loadJournal, loadProfile, loadQuietMode, saveJournal, saveProfile, saveQuietMode, type Session } from '../lib/storage';
 import * as player from '../lib/player';
 import { Button, Card, Ionicons, Muted, Screen, Segmented, tap, tick, type IconName } from '../lib/ui';
 import { colors, tabBarStyle } from '../lib/theme';
 
 type Choice = Session['choice'];
 type Live = { id: string; at: string; state: State; choice: Choice; startMs: number; levelDb: number | null; worse: boolean };
+// Named by how they sound, not by a diagnosis: people pick whichever feels best right now.
 const STATES: { value: State; label: string; icon: IconName; short: string }[] = [
-  { value: 'attack', label: 'Headache now', icon: 'thunderstorm-outline', short: 'for a headache' },
-  { value: 'warning', label: 'Early signs', icon: 'cloudy-outline', short: 'for early signs' },
-  { value: 'recovering', label: 'Recovering', icon: 'leaf-outline', short: 'for recovering' },
+  { value: 'attack', label: 'Hushed', icon: 'moon-outline', short: 'Hushed: quietest and darkest' },
+  { value: 'warning', label: 'Gentle', icon: 'cloudy-outline', short: 'Gentle: a little quieter' },
+  { value: 'normal', label: 'Full', icon: 'sunny-outline', short: 'Full: richest, normal volume' },
 ];
 const TIMERS = ['30', '60', '15', '0'];
 const AUTO_DIM_MS = 15000;
@@ -38,6 +39,7 @@ export default function QuietRoom() {
   const [autoDim, setAutoDim] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const live = useRef<Live | null>(null);
+  const scroll = useRef<any>(null);
   const dimTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const breath = useRef(new Animated.Value(0)).current;
   const navigation = useNavigation();
@@ -45,6 +47,7 @@ export default function QuietRoom() {
 
   useFocusEffect(useCallback(() => {
     loadProfile().then(setProfile);
+    loadQuietMode().then(m => { if (m === 'attack' || m === 'warning' || m === 'normal') setState(m); });
     loadJournal().then(j => { const p = pendingFollowUp(j); if (p && !live.current) setCheckFor(p.id); });
   }, []));
   useEffect(() => () => { player.stop(0.5); }, []);
@@ -150,8 +153,8 @@ export default function QuietRoom() {
   };
 
   const changeState = (next: State) => {
-    if (playing || live.current) { player.stop(2); setPlaying(null); end({ ask: false }); setStatus('State changed. Press play again to hear it adjusted.'); }
-    setState(next);
+    if (playing || live.current) { player.stop(2); setPlaying(null); end({ ask: false }); setStatus('Switched. Press play to hear it.'); }
+    setState(next); saveQuietMode(next);
   };
 
   const prog = progress(profile);
@@ -179,7 +182,7 @@ export default function QuietRoom() {
   ) : null;
 
   return (
-    <Screen overlay={dimLayer}>
+    <Screen overlay={dimLayer} scrollRef={scroll}>
       <View onTouchStart={armDim} style={{ gap: 18 }}>
         <View style={{ gap: 6, marginTop: 8 }}>
           <Text style={{ color: dim.text, fontFamily: 'Georgia', fontSize: 30 }}>Rest here.</Text>
@@ -230,11 +233,16 @@ export default function QuietRoom() {
             onPress={() => setTimer(TIMERS[(TIMERS.indexOf(timer) + 1) % TIMERS.length])} hitSlop={10}>
             <Text style={{ color: dim.faint, fontSize: 13 }}>{timerLabel} · change</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Sound set ${mode.short}. Change`} onPressIn={tick} onPress={() => setShowModes(!showModes)} hitSlop={10}>
-            <Text style={{ color: dim.faint, fontSize: 13 }}>Set {mode.short} · change</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Sound: ${mode.short}. Try another`} onPressIn={tick} onPress={() => { const open = !showModes; setShowModes(open); if (open) setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 60); }} hitSlop={10}>
+            <Text style={{ color: dim.faint, fontSize: 13 }}>{mode.short} · try another</Text>
           </Pressable>
         </View>
-        {showModes && <Segmented options={STATES} value={state} onChange={v => { changeState(v); setShowModes(false); }} />}
+        {showModes && (
+          <View style={{ gap: 8 }}>
+            <Text style={{ color: dim.soft, fontSize: 13.5, textAlign: 'center' }}>Try one of these. Pick whichever feels best right now.</Text>
+            <Segmented options={STATES} value={state} onChange={v => { changeState(v); setShowModes(false); }} />
+          </View>
+        )}
 
         <Text style={{ color: dim.faint, fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 6 }}>
           Made on this device; nothing leaves it. For comfort, not treatment. A sudden, new or worst-ever headache, or weakness, numbness or confusion: get medical help.

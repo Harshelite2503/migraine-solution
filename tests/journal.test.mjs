@@ -11,8 +11,8 @@ const s = (ms, extra = {}) => ({ id: `s${ms}`, at: iso(ms), state: 'attack', cho
 
 // Rejects anything that is not a journal; drops malformed records.
 assert.throws(() => sanitizeJournal({ schema: 'other' }));
-const dirty = sanitizeJournal({ schema: JOURNAL_KEY, sessions: [s(t0), { at: 'nope', state: 'attack', choice: 'comfort' }, { ...s(t0 + H), state: 'normal' }, s(t0)], missed: [{ at: 'x' }, { at: iso(t0 + 5 * D) }] });
-assert.equal(dirty.sessions.length, 1, 'invalid, non-headache and duplicate sessions are dropped');
+const dirty = sanitizeJournal({ schema: JOURNAL_KEY, sessions: [s(t0), { at: 'nope', state: 'attack', choice: 'comfort' }, { ...s(t0 + H), state: 'bogus' }, s(t0)], missed: [{ at: 'x' }, { at: iso(t0 + 5 * D) }] });
+assert.equal(dirty.sessions.length, 1, 'invalid and duplicate sessions are dropped');
 assert.equal(dirty.missed.length, 1);
 assert.equal(dirty.sessions[0].followUp, null);
 
@@ -70,3 +70,7 @@ assert.equal(merged.sessions.length, j.sessions.length);
 assert.equal(merged.missed.length, 2);
 
 console.log('journal ok');
+
+// A session with the full ("normal") sound is kept: people pick it during headaches too.
+assert.equal(sanitizeJournal({ schema: JOURNAL_KEY, sessions: [{ ...s(t0), state: 'normal' }], missed: [] }).sessions.length, 1);
+console.log('journal normal-state ok');

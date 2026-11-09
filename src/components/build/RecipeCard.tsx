@@ -49,7 +49,7 @@ export function RecipeCard({ profile, onChange }: Props) {
 
   return (
     <View style={{ gap: 10 }}>
-      <Segmented options={[{ value: 'normal', label: 'Normal' }, { value: 'warning', label: 'Warning' }, { value: 'attack', label: 'Headache' }, { value: 'recovering', label: 'Recovery' }]} value={state} onChange={setState} />
+      <Segmented options={[{ value: 'normal', label: 'Full' }, { value: 'warning', label: 'Gentle' }, { value: 'attack', label: 'Hushed' }]} value={state} onChange={setState} />
       {rows.map(([k, v]) => (
         <View key={k} style={{ flexDirection: 'row', gap: 10 }}>
           <Text style={{ color: colors.muted, width: 92, fontSize: 13 }}>{k}</Text>

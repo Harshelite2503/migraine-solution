@@ -9,7 +9,7 @@ import { colors, fonts } from '../lib/theme';
 
 const CHOICES = { silence: 'Dark screen, no sound', comfort: 'My comfort sound', softer: 'Softer and darker' } as const;
 const FOLLOWS = { better: 'A bit easier', same: 'About the same', worse: 'Worse' } as const;
-const STATES: Record<string, string> = { attack: 'headache', warning: 'warning signs', recovering: 'recovering' };
+const STATES: Record<string, string> = { attack: 'hushed sound', warning: 'gentle sound', recovering: 'gentle sound', normal: 'full sound' };
 const DAY = 864e5;
 
 export default function JournalScreen() {

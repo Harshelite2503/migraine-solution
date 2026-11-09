@@ -5,8 +5,8 @@ import { PreferenceGP, startingPoint } from '../engine/preference-model.js';
 import { buildRecipe } from '../recipe/recipe.js';
 
 export const PROFILE_KEY = 'still-app-profile-v1';
-export type State = 'attack' | 'warning' | 'recovering';
-export type AnyState = State | 'normal';
+export type State = 'attack' | 'warning' | 'recovering' | 'normal';
+export type AnyState = State;
 export type Point = [number, number, number, number];
 export type Bother = Partial<Record<'sudden' | 'high' | 'low' | 'pulse' | 'voices' | 'repetitive' | 'mouth', number>>;
 export type Category = 'rain' | 'ocean' | 'stream' | 'wind' | 'birds' | 'fan' | 'hum' | 'bowls' | 'piano' | 'voices' | 'silence';
@@ -58,7 +58,7 @@ const CATEGORIES = ['rain', 'ocean', 'stream', 'wind', 'birds', 'fan', 'hum', 'b
 export function freshProfile(): Profile {
   return {
     schema: PROFILE_KEY, answers: {}, intake: {}, calibration: { contour: [] }, tests: {},
-    model: null, vetoes: [], rounds: 0, baseLevelDb: 0, trims: { attack: 0, warning: 0, recovering: 0 },
+    model: null, vetoes: [], rounds: 0, baseLevelDb: 0, trims: { attack: 0, warning: 0, recovering: 0, normal: 0 },
     consentAI: false, aiReview: null,
   };
 }
@@ -108,7 +108,7 @@ export function sanitizeProfile(raw: any): Profile {
   p.vetoes = (Array.isArray(raw.vetoes) ? raw.vetoes : []).filter(isPoint).slice(-50);
   p.rounds = Number.isInteger(raw.rounds) ? clamp(raw.rounds, 0, 1000) : 0;
   if (Number.isFinite(raw.baseLevelDb)) p.baseLevelDb = clamp(raw.baseLevelDb, -40, 6);
-  for (const s of ['attack', 'warning', 'recovering'] as const) if (Number.isFinite(raw.trims?.[s])) p.trims[s] = clamp(raw.trims[s], -30, 0);
+  for (const s of ['attack', 'warning', 'recovering', 'normal'] as const) if (Number.isFinite(raw.trims?.[s])) p.trims[s] = clamp(raw.trims[s], -30, 0);
   p.consentAI = raw.consentAI === true;
   if (raw.aiReview && typeof raw.aiReview === 'object' && typeof raw.aiReview.at === 'string') p.aiReview = raw.aiReview;
   return p;

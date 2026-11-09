@@ -210,7 +210,7 @@ export function buildRecipe(profile, state = 'attack', extra = {}) {
   }
   const trim = profile.trims?.[state] ?? 0;
   if (trim < 0) { level += trim; note('levelDb', trim, 'measured', `${Math.abs(trim)} dB quieter after you said a sound made things worse.`, ['personal']); }
-  const ceiling = state === 'normal' ? base : base + mode.offsetDb + Math.min(0, trim);
+  const ceiling = base + mode.offsetDb + Math.min(0, trim);
 
   // ---- Onset, offset, timer ----
   const fadeInS = mode.fadeSeconds + 0.75 * n04(bother.sudden) + (n04(bother.sudden) >= 3 ? 2 : 0);

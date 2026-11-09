@@ -12,6 +12,7 @@ import { Contour, Reference } from '../components/build/Calibrate';
 import { Tests } from '../components/build/Tests';
 import { Refine } from '../components/build/Refine';
 import { RecipeCard } from '../components/build/RecipeCard';
+import { SupportCard } from '../components/SupportCard';
 import { Button, confirmAction, Eyebrow, H1, Ionicons, Muted, Screen, styles, tap, type IconName } from '../lib/ui';
 import { colors } from '../lib/theme';
 
@@ -102,6 +103,7 @@ export default function MySound() {
         <Ionicons name={deeper ? 'chevron-up' : 'chevron-down'} size={16} color={colors.muted} />
       </Pressable>
       {deeper && DEEPER.map(row)}
+      <SupportCard />
       <Muted small>Preferring a sound is not the same as it reducing pain. Still is for comfort and does not diagnose, treat or prevent migraine.</Muted>
     </Screen>
   );

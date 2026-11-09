@@ -4,10 +4,19 @@ import { freshJournal, sanitizeJournal, JOURNAL_KEY } from '../engine/journal-st
 import { freshProfile, sanitizeProfile, PROFILE_KEY, type Profile } from './profile';
 
 export type Session = {
-  id: string; at: string; state: 'attack' | 'warning' | 'recovering'; choice: 'silence' | 'comfort' | 'softer';
+  id: string; at: string; state: 'attack' | 'warning' | 'recovering' | 'normal'; choice: 'silence' | 'comfort' | 'softer';
   durationS: number; levelDb: number | null; worse: boolean; followUp: 'better' | 'same' | 'worse' | 'skipped' | null;
 };
 export type Journal = { schema: string; sessions: Session[]; missed: { at: string }[] };
+
+const MODE_KEY = 'still.quietMode';
+/** The sound a person last picked in the quiet room (full, gentle or hushed). */
+export async function loadQuietMode(): Promise<string | null> {
+  try { return await AsyncStorage.getItem(MODE_KEY); } catch { return null; }
+}
+export async function saveQuietMode(mode: string): Promise<void> {
+  try { await AsyncStorage.setItem(MODE_KEY, mode); } catch {}
+}
 
 export async function loadJournal(): Promise<Journal> {
   try { return sanitizeJournal(JSON.parse((await AsyncStorage.getItem(JOURNAL_KEY)) || 'null')) as Journal; } catch { return freshJournal() as Journal; }
