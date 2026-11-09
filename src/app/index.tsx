@@ -11,7 +11,7 @@ import { freshProfile, lowerState, progress, recipeFor, SOFTER_DB, type Profile,
 import { loadJournal, loadProfile, saveJournal, saveProfile, type Session } from '../lib/storage';
 import * as player from '../lib/player';
 import { Button, Card, Ionicons, Muted, Screen, Segmented, tap, tick, type IconName } from '../lib/ui';
-import { colors } from '../lib/theme';
+import { colors, tabBarStyle } from '../lib/theme';
 
 type Choice = Session['choice'];
 type Live = { id: string; at: string; state: State; choice: Choice; startMs: number; levelDb: number | null; worse: boolean };
@@ -74,7 +74,7 @@ export default function QuietRoom() {
   useEffect(() => { armDim(); return () => { if (dimTimer.current) clearTimeout(dimTimer.current); }; }, [armDim]);
   // Hide the tab bar while dimmed, so the whole screen goes dark.
   const dimmed = autoDim && playingNow && !dark;
-  useEffect(() => { navigation.setOptions({ tabBarStyle: dimmed || dark ? { display: 'none' } : undefined }); }, [dimmed, dark, navigation]);
+  useEffect(() => { navigation.setOptions({ tabBarStyle: dimmed || dark ? { ...tabBarStyle, display: 'none' } : tabBarStyle }); }, [dimmed, dark, navigation]);
 
   /** Your recipe for this state, or a softer, darker version of it (never louder, never brighter). */
   const recipes = useMemo(() => {
@@ -115,7 +115,7 @@ export default function QuietRoom() {
       if (live.current?.choice !== choice) return;
       await player.play(uri, { levelDb: r.levelDb, fadeIn: r.fadeInS, title: choice === 'softer' ? 'Softer and darker' : 'My sound' });
     } catch {
-      setStatus('Could not start the sound on this phone.'); setPlaying(null); live.current = null; setPreparing(false); return;
+      setStatus('Could not start the sound on this device.'); setPlaying(null); live.current = null; setPreparing(false); return;
     }
     setPreparing(false);
     const minutes = Number(timer);
@@ -233,7 +233,7 @@ export default function QuietRoom() {
         {showModes && <Segmented options={STATES} value={state} onChange={v => { changeState(v); setShowModes(false); }} />}
 
         <Text style={{ color: dim.faint, fontSize: 11.5, lineHeight: 17, textAlign: 'center', marginTop: 6 }}>
-          Made on this phone; nothing leaves it. For comfort, not treatment. A sudden, new or worst-ever headache, or weakness, numbness or confusion: get medical help.
+          Made on this device; nothing leaves it. For comfort, not treatment. A sudden, new or worst-ever headache, or weakness, numbness or confusion: get medical help.
         </Text>
       </View>
 

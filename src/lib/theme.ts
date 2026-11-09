@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 // Still's night palette: deep blue-black fading to forest green, sage and moonlight accents.
 // Dark-only on purpose: the app is used in dark rooms during headaches. No flashing, no bright whites.
 export const colors = {
@@ -20,3 +21,9 @@ export const colors = {
 
 export const fonts = { display: 'Georgia' };
 export const radius = { card: 20, pill: 999, button: 16 };
+
+/** The tab bar's look, shared by the layout and by screens that hide it (so it comes back styled). */
+export const tabBarStyle = {
+  backgroundColor: colors.bgTop, borderTopColor: colors.line,
+  ...(Platform.OS === 'web' ? { height: 60, paddingBottom: 6 } : {}),
+};

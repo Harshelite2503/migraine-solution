@@ -1,7 +1,7 @@
 // Shared UI pieces. Every pressable gives instant feedback (scale + a light haptic tap) on touch
 // down, before any slow work starts, so the app always feels responsive.
 import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,11 @@ import { colors, fonts, radius } from './theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 export const tap = () => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); };
+/** Ask before something that can't be undone. Uses the browser's own dialog on the web, where Alert does nothing. */
+export function confirmAction(title: string, message: string, okLabel: string, onOk: () => void) {
+  if (Platform.OS === 'web') { if (window.confirm(`${title}\n\n${message}`)) onOk(); return; }
+  Alert.alert(title, message, [{ text: 'Cancel', style: 'cancel' }, { text: okLabel, style: 'destructive', onPress: onOk }]);
+}
 export const tick = () => { Haptics.selectionAsync().catch(() => {}); };
 export { Ionicons };
 

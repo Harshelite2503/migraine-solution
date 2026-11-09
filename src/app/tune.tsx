@@ -1,7 +1,7 @@
 // My sound: two short steps make the sound personal (30 s of taps, then about 3 minutes of
 // listening). Everything else is optional, under "Go deeper". Each answer saves as you go.
 import { useCallback, useRef, useState } from 'react';
-import { Alert, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { freshProfile, progress, type Profile } from '../lib/profile';
 import { loadProfile, saveProfile } from '../lib/storage';
@@ -12,7 +12,7 @@ import { Contour, Reference } from '../components/build/Calibrate';
 import { Tests } from '../components/build/Tests';
 import { Refine } from '../components/build/Refine';
 import { RecipeCard } from '../components/build/RecipeCard';
-import { Button, Eyebrow, H1, Ionicons, Muted, Screen, styles, tap, type IconName } from '../lib/ui';
+import { Button, confirmAction, Eyebrow, H1, Ionicons, Muted, Screen, styles, tap, type IconName } from '../lib/ui';
 import { colors } from '../lib/theme';
 
 const CORE_TESTS = ['tilt', 'cutoff', 'tonal'];
@@ -53,10 +53,8 @@ export default function MySound() {
     reference: prog.steps.reference, contour: prog.steps.contour, more: testsDone(MORE_TESTS), refine: prog.steps.refine,
   };
 
-  const resetTests = () => Alert.alert('Redo the listening tests?', 'Your test results and A/B choices will be cleared. Your answers stay.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Redo', style: 'destructive', onPress: () => update({ ...profile, tests: {}, model: null, rounds: 0, vetoes: [] }) },
-  ]);
+  const resetTests = () => confirmAction('Redo the listening tests?', 'Your test results and A/B choices will be cleared. Your answers stay.', 'Redo',
+    () => update({ ...profile, tests: {}, model: null, rounds: 0, vetoes: [] }));
 
   const body = (k: StepKey) => (
     <View style={{ marginTop: 10, gap: 10 }}>
@@ -96,7 +94,7 @@ export default function MySound() {
     <Screen scrollRef={scroll}>
       <Eyebrow>Still · my sound</Eyebrow>
       <H1>Make it yours</H1>
-      <Muted>Two short steps, best on a calmer day. Everything stays on this phone.</Muted>
+      <Muted>Two short steps, best on a calmer day. Everything stays on this device.</Muted>
       {MAIN.map(row)}
       <Pressable accessibilityRole="button" accessibilityLabel="Go deeper (optional)" accessibilityState={{ expanded: deeper }} onPressIn={tap} onPress={() => setDeeper(!deeper)}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 }}>

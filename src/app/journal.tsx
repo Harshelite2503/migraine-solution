@@ -1,10 +1,10 @@
 // Journal: headache episodes, what was chosen, how it felt, and the privacy-minimal pilot summary.
 import { useCallback, useState } from 'react';
-import { Alert, Share, Text, TextInput, View } from 'react-native';
+import { Share, Text, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { episodes, freshJournal, metrics, pilotSummary, sanitizeJournal } from '../engine/journal-store.js';
 import { clearJournal, loadJournal, saveJournal, type Journal } from '../lib/storage';
-import { Button, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
+import { Button, confirmAction, Eyebrow, H1, H2, Muted, Screen, styles } from '../lib/ui';
 import { colors, fonts } from '../lib/theme';
 
 const CHOICES = { silence: 'Dark screen, no sound', comfort: 'My comfort sound', softer: 'Softer and darker' } as const;
@@ -33,16 +33,20 @@ export default function JournalScreen() {
   };
 
   const sharePilot = async () => {
+    let summary;
+    try { summary = pilotSummary(journal, code); } catch { setNote('Enter the pilot code you were given (letters and numbers only).'); return; }
+    const text = JSON.stringify(summary);
     try {
-      const summary = pilotSummary(journal, code);
-      await Share.share({ title: `Still pilot ${summary.participant}`, message: JSON.stringify(summary) });
-    } catch { setNote('Enter the pilot code you were given (letters and numbers only).'); }
+      await Share.share({ title: `Still pilot ${summary.participant}`, message: text });
+    } catch {
+      // Browsers without a share sheet: copy it instead.
+      try { await navigator.clipboard.writeText(text); setNote('Copied your pilot summary. Paste it into an email to the study team.'); }
+      catch { setNote('This browser cannot share or copy. Try it on your phone.'); }
+    }
   };
 
-  const clear = () => Alert.alert('Clear your journal?', 'This removes every episode from this phone. It cannot be undone.', [
-    { text: 'Cancel', style: 'cancel' },
-    { text: 'Clear', style: 'destructive', onPress: async () => { await clearJournal(); setJournal(freshJournal() as Journal); setNote('Journal cleared.'); } },
-  ]);
+  const clear = () => confirmAction('Clear your journal?', 'This removes every episode from this device. It cannot be undone.', 'Clear',
+    async () => { await clearJournal(); setJournal(freshJournal() as Journal); setNote('Journal cleared.'); });
 
   return (
     <Screen>

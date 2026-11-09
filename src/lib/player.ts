@@ -1,7 +1,7 @@
 // Sound playback: render a seamless loop with Still's engine, cache it as a WAV file, play it
 // with expo-audio. Volume always ramps (never jumps), and playback continues with the screen locked.
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
-import { File, Paths } from 'expo-file-system';
+import { cachedUri, storeWav } from './soundCache';
 import { renderComfortLoop, applyFades, renderBand } from '../engine/comfort-engine.js';
 import { renderOptions } from '../recipe/recipe.js';
 import { encodeWav } from '../engine/wav.js';
@@ -17,7 +17,7 @@ let generation = 0;
 
 async function ensureAudioMode() {
   if (modeReady) return;
-  await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'duckOthers' });
+  try { await setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true, interruptionMode: 'duckOthers' }); } catch {}
   modeReady = true;
 }
 
@@ -32,13 +32,11 @@ function hash(text: string) {
 }
 
 async function writeOnce(name: string, render: () => { left: Float32Array; right: Float32Array; rate: number }) {
-  const file = new File(Paths.cache, name);
-  if (file.exists) return file.uri;
+  const hit = cachedUri(name);
+  if (hit) return hit;
   await new Promise(r => setTimeout(r, 16)); // let "Preparing…" paint before heavy work
   const s = render();
-  file.create({ overwrite: true });
-  await file.write(encodeWav(s.left, s.right, s.rate));
-  return file.uri;
+  return storeWav(name, encodeWav(s.left, s.right, s.rate));
 }
 
 type RecipeLike = Parameters<typeof renderOptions>[0];
@@ -83,15 +81,10 @@ export async function bandFile(hz: number): Promise<string> {
 
 /** Render (or reuse) a sound file. Loops are ~6 s and seamless; clips are 6 s with fades, for A/B rounds. */
 export async function soundFile(x: number[], mode: string, clip = false): Promise<string> {
-  const file = new File(Paths.cache, `still-${keyOf(x, mode, clip)}.wav`);
-  if (file.exists) return file.uri;
-  await new Promise(r => setTimeout(r, 16)); // let the "Preparing…" text paint before heavy work
-  const sound = renderComfortLoop(x, { rate: RATE, log2Length: 18, seed: 21, mode });
-  const left = clip ? applyFades(sound.left, RATE, 0.8) : sound.left;
-  const right = clip ? applyFades(sound.right, RATE, 0.8) : sound.right;
-  file.create({ overwrite: true });
-  await file.write(encodeWav(left, right, RATE));
-  return file.uri;
+  return writeOnce(`still-${keyOf(x, mode, clip)}.wav`, () => {
+    const sound = renderComfortLoop(x, { rate: RATE, log2Length: 18, seed: 21, mode });
+    return clip ? { left: applyFades(sound.left, RATE, 0.8), right: applyFades(sound.right, RATE, 0.8), rate: RATE } : sound;
+  });
 }
 
 function clearRamp() { if (ramp) { clearInterval(ramp); ramp = null; } }
