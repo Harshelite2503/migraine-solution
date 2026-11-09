@@ -6,12 +6,13 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { loadActivity, type ActivityEvent } from './activity';
-import { supabase } from './supabase';
+import { supabase, supabaseReady } from './supabase';
 
 const ON_KEY = 'still.share.on';
 const SYNCED_KEY = 'still.share.syncedAt';
 
 export async function sharingOn(): Promise<boolean> {
+  if (!supabaseReady) return false;
   try { return (await AsyncStorage.getItem(ON_KEY)) === '1'; } catch { return false; }
 }
 

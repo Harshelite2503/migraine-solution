@@ -4,7 +4,7 @@ import { metrics } from '../engine/journal-store.js';
 import { buildReviewRequest, sanitizeReview } from '../recipe/review.js';
 import { recipeFor, type AiReview, type Profile } from './profile';
 import type { Journal } from './storage';
-import { supabase } from './supabase';
+import { supabase, supabaseReady } from './supabase';
 
 const URL = process.env.EXPO_PUBLIC_RECIPE_API_URL || 'https://still-review-fc26d0.azurewebsites.net/api/review';
 export const aiAvailable = URL.startsWith('https://');
@@ -16,7 +16,7 @@ export function reviewPayload(profile: Profile, journal: Journal) {
 }
 
 export async function requestReview(profile: Profile, journal: Journal): Promise<AiReview> {
-  if (!aiAvailable) throw new ReviewError('The AI review is not set up in this version.');
+  if (!aiAvailable || !supabaseReady) throw new ReviewError('The AI review is not set up in this version yet.');
   // The review server accepts signed-in people only (5 reviews a day), so no key is built into the app.
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;

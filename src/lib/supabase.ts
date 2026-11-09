@@ -7,10 +7,12 @@ import { createClient } from '@supabase/supabase-js';
 
 if (Platform.OS !== 'web') require('react-native-url-polyfill/auto');
 
-export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://jxalfqqykvrokovndbgh.supabase.co';
-export const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || 'sb_publishable_eqlyAGAP4iT1gFbg9qqm4Q_Ym6YGhTF';
+// Still's own project, set at build time. Until it is set, sign-in and sharing stay hidden.
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+export const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY || '';
+export const supabaseReady = SUPABASE_URL.startsWith('https://') && SUPABASE_KEY.length > 0;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
+export const supabase = createClient(supabaseReady ? SUPABASE_URL : 'https://not-configured.invalid', supabaseReady ? SUPABASE_KEY : 'not-configured', {
   auth: { storage: AsyncStorage, autoRefreshToken: true, persistSession: true, detectSessionInUrl: false },
 });
 

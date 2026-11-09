@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Switch, Text, TextInput, View } from 'react-native';
 import { PrivacySheet } from './PrivacySheet';
+import { supabaseReady } from '../lib/supabase';
 import { deleteAccount, isSignedIn, sendCode, signOut, useSession, verifyCode } from '../lib/account';
 import { deleteShared, setSharing, sharingOn } from '../lib/sharing';
 import { track } from '../lib/activity';
@@ -12,6 +13,11 @@ import { colors } from '../lib/theme';
 const input = { borderWidth: 1, borderColor: colors.line, borderRadius: 12, padding: 12, color: colors.ink, fontSize: 15 } as const;
 
 export function AccountCard() {
+  if (!supabaseReady) return null;
+  return <AccountCardInner />;
+}
+
+function AccountCardInner() {
   const session = useSession();
   const signedIn = isSignedIn(session);
   const [email, setEmail] = useState('');
@@ -72,6 +78,11 @@ export function AccountCard() {
 }
 
 export function SharingCard() {
+  if (!supabaseReady) return null;
+  return <SharingCardInner />;
+}
+
+function SharingCardInner() {
   const [on, setOn] = useState(false);
   const [privacy, setPrivacy] = useState(false);
   const [note, setNote] = useState('');

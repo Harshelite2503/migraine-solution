@@ -4,7 +4,7 @@
 # 6-digit code. Needs a personal access token (Dashboard -> Account -> Access Tokens, starts sbp_)
 # in SUPABASE_ACCESS_TOKEN, or a network proxy that adds it.
 set -euo pipefail
-REF="${SUPABASE_PROJECT_REF:-jxalfqqykvrokovndbgh}"
+REF="${SUPABASE_PROJECT_REF:?Set SUPABASE_PROJECT_REF to Still's own Supabase project ref}"
 API="https://api.supabase.com/v1/projects/$REF"
 AUTH=()
 [ -n "${SUPABASE_ACCESS_TOKEN:-}" ] && AUTH=(-H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN")
