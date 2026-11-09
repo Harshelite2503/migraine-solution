@@ -82,7 +82,7 @@ jobs:
           cat > ~/.gradle/init.d/mirror.gradle <<'GRADLE'
           def mirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
           beforeSettings { settings ->
-            settings.pluginManagement.repositories { maven { url mirror } }
+            settings.pluginManagement.repositories { maven { url mirror }; gradlePluginPortal(); google(); mavenCentral() }
           }
           allprojects {
             buildscript { repositories { maven { url mirror } } }
