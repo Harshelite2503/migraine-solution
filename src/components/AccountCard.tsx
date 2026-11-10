@@ -55,7 +55,7 @@ function AccountCardInner() {
           <Caption>Sign in to use the AI review. No password: we email you a sign-in link.</Caption>
           {!sent ? (
             <>
-              <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={colors.ink3} style={styles.input}
+              <TextInput value={email} onChangeText={setEmail} placeholder="you@example.com" placeholderTextColor={colors.ink2} style={styles.input}
                 autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email" accessibilityLabel="Email" />
               <Button kind="primary" label={busy ? 'Sending…' : 'Email me a sign-in link'} onPress={ask} disabled={busy || !email.trim()} />
             </>

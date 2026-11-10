@@ -15,7 +15,7 @@ import { Control, Eyebrow, Ionicons, Label, Press, tick, useMaterial, useScrollL
 const SWEEP = 270;           // degrees from the first stop to the last
 const PX_PER_STOP = 26;      // how far to drag for one click
 const MAX_SPIN = 1440;       // deg/s; a wild flick still lands calmly
-const SNAP_REDUCED = 150;    // under reduced motion the knob still turns 1:1, then eases onto the stop
+const SNAP_REDUCED = 0;      // under reduced motion the knob still turns 1:1, then lands on the stop with no ease
 
 const web = Platform.OS === 'web';
 
@@ -49,7 +49,10 @@ export function Dial({ label, stops, value, onChange, onRelease, size = 112, dis
   const lockScroll = useScrollLock();
   const lockRef = useRef(lockScroll);
   lockRef.current = lockScroll;
-  const lock = useCallback((on: boolean) => { lockRef.current(on); }, []);
+  // On the web the knob already owns its touches (touch-action: none), and toggling scroll there would
+  // hide the scrollbar and shift the page under the cursor, so only phones lock.
+  const lock = useCallback((on: boolean) => { if (!web) lockRef.current(on); }, []);
+  useEffect(() => () => lock(false), [lock]); // never leave the page frozen if the knob goes away mid-drag
 
   // A value from outside (a reload, a screen reader step) turns the knob. A value the gesture just set is already there.
   const lastN = useRef(n);

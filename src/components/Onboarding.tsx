@@ -11,7 +11,7 @@ import type { Profile } from '../lib/profile';
 import { colors, sceneFor, z, type SceneTexture } from '../lib/theme';
 import { cross, ease, spring, timing, useReducedMotion } from '../lib/motion';
 import { useAppFonts } from '../lib/fonts';
-import { Control, Ionicons, Press, useGutter } from '../lib/ui';
+import { Control, Ionicons, Press, useGutter, ScrollLockScope } from '../lib/ui';
 import { track } from '../lib/activity';
 import { Scene } from './Scene';
 import { usePreview, withHardest, type Hardest } from './Studio';
@@ -131,22 +131,27 @@ function PaneStage({ step, render }: { step: number; render: (step: number) => R
   // Scrolling only engages when the pane outgrows the stage (large type), so the dial's drag is not fought.
   const [viewH, setViewH] = useState(0);
   const [contentH, setContentH] = useState(0);
+  const [locked, setLocked] = useState(false);
 
   return (
     <ScrollView style={styles.fill} contentContainerStyle={styles.stage} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
-      scrollEnabled={contentH > viewH + 1} onLayout={e => setViewH(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => setContentH(h)}>
+      scrollEnabled={contentH > viewH + 1 && !locked} onLayout={e => setViewH(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => setContentH(h)}>
+      <ScrollLockScope onLock={setLocked}>
       <PaneIn key={`in-${current.shown}`} reduced={reduced}>{render(current.shown)}</PaneIn>
-      {current.ghost != null ? (
+      {/* Reduced motion: a plain cut, so the old pane is not kept to fade out. */}
+      {current.ghost != null && !reduced ? (
         <PaneOut key={`out-${current.gen}`} onGone={() => clearGhost(current.gen)}>{render(current.ghost)}</PaneOut>
       ) : null}
+      </ScrollLockScope>
     </ScrollView>
   );
 }
 
 function PaneIn({ children, reduced }: { children: ReactNode; reduced: boolean }) {
-  const opacity = useSharedValue(0);
+  const opacity = useSharedValue(reduced ? 1 : 0);
   const rise = useSharedValue(reduced ? 0 : RISE);
   useEffect(() => {
+    if (reduced) { opacity.set(1); rise.set(0); return; }
     opacity.set(withTiming(1, cross(timing.crossfadeIn)));
     if (reduced) rise.set(0); else rise.set(withSpring(0, spring.settle));
   }, [opacity, rise, reduced]);

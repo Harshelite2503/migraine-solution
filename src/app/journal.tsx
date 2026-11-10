@@ -1,7 +1,7 @@
 // Journal: headache episodes, what was chosen and how it felt. Kept on this device. The room is always
 // hush at depth 1, the quietest scene, because this page is read on better days than the quiet room.
 import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { episodes, freshJournal, metrics, sanitizeJournal } from '../engine/journal-store.js';
 import { clearJournal, loadJournal, saveJournal, type Journal } from '../lib/storage';
@@ -18,6 +18,8 @@ const BAR_COLORS: Record<keyof typeof FOLLOWS, string> = { better: colors.moss, 
 const DAY = 864e5;
 
 export default function JournalScreen() {
+  const { fontScale } = useWindowDimensions();
+  const fit = fontScale <= 1.1;
   const [journal, setJournal] = useState<Journal>(freshJournal() as Journal);
   const [loaded, setLoaded] = useState(false);
   const [note, setNote] = useState('');
@@ -79,10 +81,10 @@ export default function JournalScreen() {
         <Card>
           <Heading>Headache without Still?</Heading>
           <Body color={colors.ink2}>One tap, no details.</Body>
-          <View style={styles.chips}>
-            <Chip fit label="Today" onPress={() => addMissed(0)} style={styles.chip} />
-            <Chip fit label="Yesterday" onPress={() => addMissed(1)} style={styles.chip} />
-            <Chip fit label="2 days ago" onPress={() => addMissed(2)} style={styles.chip} />
+          <View style={[styles.chips, !fit && styles.chipsWrap]}>
+            <Chip fit={fit} label="Today" onPress={() => addMissed(0)} style={styles.chip} />
+            <Chip fit={fit} label="Yesterday" onPress={() => addMissed(1)} style={styles.chip} />
+            <Chip fit={fit} label="2 days ago" onPress={() => addMissed(2)} style={styles.chip} />
           </View>
         </Card>
         <Status>{note}</Status>
@@ -99,6 +101,8 @@ export default function JournalScreen() {
 const styles = StyleSheet.create({
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   chips: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  // Three across on a 375 pt phone; the labels wrap inside the chip under large type.
+  // Three across on a 375 pt phone, each label on one line. Under large type they wrap instead of
+  // shrinking past readable, so nothing is cut to "2 days a…".
   chip: { flex: 1, paddingHorizontal: 8 },
+  chipsWrap: { flexWrap: 'wrap' },
 });

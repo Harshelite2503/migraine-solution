@@ -28,7 +28,7 @@ export const colors = {
   // text
   ink: '#E7E2D8',          // 12.9:1 to 15.1:1 on every surface
   ink2: '#A8A399',         // 6.6:1 to 7.7:1; body-eligible
-  ink3: '#8A857C',         // 4.9:1 to 5.3:1: the dimmest text that still reads clearly (4.5:1 floor, as in the design audit); captions, disclaimers, disabled
+  ink3: '#8A857C',         // 4.5:1 to 5.3:1: the dimmest text that still reads clearly (the design audit's floor); captions, disclaimers, disabled
   // the single accent
   lamp: '#C29A62',         // 6.4:1 to 7.5:1 as text; the only filled bright surface
   lampDeep: '#7A6140',     // tracks, selected borders, arc at rest (decoration only, 3.1:1)
@@ -47,7 +47,7 @@ export const colors = {
   // aliases for one release, so untouched files compile (Lamplight graft)
   bg: '#0B0D12', bgTop: '#0B0D12', bgBottom: '#0B0D12',
   surface: 'rgba(255,255,255,0.04)', surfaceStrong: 'rgba(255,255,255,0.07)', raised: 'rgba(255,255,255,0.10)',
-  line: 'rgba(255,255,255,0.07)', muted: '#A8A399', faint: '#75716A',
+  line: 'rgba(255,255,255,0.07)', muted: '#A8A399', faint: '#8A857C',
   accent: '#C29A62', accentDeep: '#7A6140', moon: '#C29A62', warn: '#D28E7C',
 };
 

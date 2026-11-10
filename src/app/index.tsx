@@ -125,7 +125,13 @@ export default function QuietRoom() {
   // Prepare both sounds for this state while the screen is idle.
   // Also again when the first-run setup closes: its preview was playing, and background renders
   // never compete with playback, so a sound changed during setup would otherwise not be ready.
-  useEffect(() => { player.prewarm([recipes.comfort, recipes.softer], setup ? 700 : 150); }, [recipes, setup]);
+  const wasSetup = useRef(false);
+  useEffect(() => {
+    if (onboarded === null) return;
+    const justClosed = wasSetup.current && !setup;
+    wasSetup.current = setup;
+    player.prewarm([recipes.comfort, recipes.softer], justClosed ? 150 : 700);
+  }, [recipes, setup, onboarded]);
 
   const say = (text: string) => { setStatus(text); setWorseNote(false); };
 

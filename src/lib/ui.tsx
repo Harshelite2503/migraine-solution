@@ -511,6 +511,10 @@ export type ScreenProps = {
 /** Lets a control that is being dragged (a dial) stop the page from scrolling under the finger. */
 const ScrollLock = createContext<(locked: boolean) => void>(() => {});
 export const useScrollLock = () => useContext(ScrollLock);
+/** Gives a scroll view of its own (the setup overlay's) the dial lock, instead of the screen underneath. */
+export function ScrollLockScope({ onLock, children }: { onLock: (locked: boolean) => void; children: ReactNode }) {
+  return <ScrollLock.Provider value={onLock}>{children}</ScrollLock.Provider>;
+}
 
 export function Screen({ children, scrollRef, overlay, center, texture, depth = 1, playing, softer, worse, fadeInMs, bottomPad = 0, inert = false, contentStyle }: ScreenProps) {
   const wide = useWide();
@@ -627,7 +631,7 @@ export const styles = StyleSheet.create({
   segmentLabel: { flexShrink: 1, textAlign: 'center' },
   hidden: { display: 'none' },
   segmentOn: { backgroundColor: colors.smokePressed, borderColor: colors.lampDeep },
-  controlFit: { fontSize: 14.5, whiteSpace: 'nowrap' } as TextStyle,
+  controlFit: { fontSize: 14, whiteSpace: 'nowrap' } as TextStyle,   // "2 days ago" is 73 px: fits a 375 px row of three
   chip: { flexDirection: 'row', gap: 8, minHeight: 48, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.smoke, borderRadius: radius.chip, paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' },
   tile: { flexGrow: 1, borderRadius: radius.tile, borderWidth: 1, borderColor: colors.hairline, backgroundColor: colors.smoke, padding: 16, gap: 10, overflow: 'hidden' },
   tileSquare: { flexBasis: '46%', minHeight: 104, justifyContent: 'space-between' },

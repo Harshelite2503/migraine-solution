@@ -59,7 +59,7 @@ export const colors = {
   // text
   ink: '#E7E2D8',          // 12.9:1 to 15.1:1 on every surface
   ink2: '#A8A399',         // 6.6:1 to 7.7:1; body-eligible
-  ink3: '#75716A',         // 3.4:1 to 4.0:1; captions, disclaimers, disabled ONLY, never body
+  ink3: '#8A857C',         // 4.5:1 to 5.3:1 (raised in the design audit); captions, disclaimers, disabled; never body
   // the single accent
   lamp: '#C29A62',         // 6.4:1 to 7.5:1 as text; the only filled bright surface
   lampDeep: '#7A6140',     // tracks, selected borders, arc at rest (decoration only, 3.1:1)
@@ -71,7 +71,7 @@ export const colors = {
   // aliases for one release, so untouched files compile (Lamplight graft)
   bg: '#0B0D12', bgTop: '#0B0D12', bgBottom: '#0B0D12',
   surface: 'rgba(255,255,255,0.04)', surfaceStrong: 'rgba(255,255,255,0.07)', raised: 'rgba(255,255,255,0.10)',
-  line: 'rgba(255,255,255,0.07)', muted: '#A8A399', faint: '#75716A',
+  line: 'rgba(255,255,255,0.07)', muted: '#A8A399', faint: '#8A857C',
   accent: '#C29A62', accentDeep: '#7A6140', moon: '#C29A62', warn: '#D28E7C',
 };
 export const radius = { card: 24, tile: 24, button: 18, chip: 14, pill: 999, sheet: 28 };
@@ -214,7 +214,7 @@ Rules, each one enforced by the primitives rather than by memory:
 
 **Auto-dim** (15 s without a touch while playing): a `night` veil at `z.veil` eases to 0.94 over 1600 ms; the tab bar fades with it; the ring keeps breathing above the veil at 0.28 peak; the lamp caption and the worse bar remain *visible* at 28% through the veil (they are rendered above it with `pointerEvents="none"`). The veil is one `Pressable` labelled "Screen dimmed. Tap to brighten."; **any touch wakes over 700 ms and nothing else happens**. The sound never stops from a dim-state touch.
 
-**Dark screen**: `black` layer at `z.dark` eases in over 900 ms (the ring's opacity goes last, 1200 ms, so the lamp is the last thing to leave); status bar hidden; the whole screen is one button "Dark screen. Tap to come back." First use only: a Caption "Tap to come back" in ink3 on black (4.3:1) for three seconds, then never again (`still.darkHintShown` in storage). Leaving eases back over 700 ms.
+**Dark screen**: `black` layer at `z.dark` eases in over 900 ms (the ring's opacity goes last, 1200 ms, so the lamp is the last thing to leave); status bar hidden; the whole screen is one button "Dark screen. Tap to come back." First use only: a Caption "Tap to come back" in ink3 on black (5.7:1) for three seconds, then never again (`still.darkHintShown` in storage). Leaving eases back over 700 ms.
 
 **The room backs off**: `worse()` keeps its 1.5 s stop and `lowerState`; the Scene adds a permanent +0.10 tint for the rest of the visit (1800 ms); the status sentence shows in ink2 with a 2 px rose hairline on its left. Nothing turns red; nothing pulses.
 
@@ -290,7 +290,7 @@ Accessibility: one `h1`, sequential headings, a skip link to `main`, focus moves
 3. **Sinking into Hushed.** Choosing Hushed (idle only) tints the floor 0.25 and lowers the horizon 48 pt over 1800 ms with a selection haptic. The sky never changes.
 4. **The chrome dissolves.** 15 s after the last touch while playing, everything eases to a 0.94 veil over 1600 ms; only the breathing ring (0.28 peak) and two faint, non-interactive landmarks remain. Any touch wakes in 700 ms and never stops the sound.
 5. **Softer is deeper.** Softer adds one depth step (tint +0.10, horizon −24 pt) over 1800 ms, so "quieter, darker" is shown by the room, and returns the same way.
-6. **Lights out.** Dark screen eases to `#000` over 900 ms with the ring leaving last; one tap on the whole screen returns over 700 ms; a 4.3:1 hint for three seconds, the first time only.
+6. **Lights out.** Dark screen eases to `#000` over 900 ms with the ring leaving last; one tap on the whole screen returns over 700 ms; a 5.7:1 hint for three seconds, the first time only.
 7. **The room backs off, calmly.** "Making it worse" darkens the room one step for the rest of the visit; the message is ink2 with a rose hairline; nothing flashes.
 8. **A/B as a ritual.** Pad rims fill across the clip, the pads become the answers, a round tick fills, the next pair is already prepared.
 9. **The Recipe Arc.** On /tune only, a soft arc around Listen re-shapes 350 ms after each dial release, so the sound you shaped has a face.
@@ -300,7 +300,7 @@ Accessibility: one `h1`, sequential headings, a skip link to `main`, focus moves
 
 ## 10. Accessibility summary
 
-Contrast as in §2 (ink ≥ 12.9:1, ink2 ≥ 6.6:1, lamp and rose ≥ 6.3:1 on every surface; ink3 3.4–4.0:1 and caption-only; the Dark screen hint 4.3:1 for three seconds). Peak full-bleed luminance 0.0083 in the app, 0.0094 on the landing. Reduced motion and reduced transparency through the two hooks in §5 on both platforms; brightness eases kept under reduced motion. No loop faster than 0.1 Hz; no luminance change on a large surface faster than 700 ms; the per-frame delta of the breath is under 0.2% of full scale. Roles: lamp and buttons are `button` with state labels; loudness, textures and the check-in chips are `radiogroup` / `radio` with `checked`; dials `adjustable` with value text and increment/decrement; the tab bar `tablist` / `tab` with `selected`; scenes, arcs, rims and the mark are decorative and hidden. The Status line and journal confirmations are polite live regions; the worse message is assertive. Sheets move focus to their title and return it. Web: Tab order equals visual order, `:focus-visible` ring everywhere, Space/Enter activate, arrows drive dials and segments, Escape closes sheets. Targets ≥ 44 pt with ≥ 8 pt gaps; `hitSlop` where visuals are smaller (timer pill, Skip, Back). Dynamic Type honoured with wrapping layouts. Colour is never the only signal: selected states pair colour with a border and a filled glyph; "worse" pairs rose with the hand glyph and words; journal bars carry labels and counts.
+Contrast as in §2 (ink ≥ 12.9:1, ink2 ≥ 6.6:1, lamp and rose ≥ 6.3:1 on every surface; ink3 4.5–5.3:1 and caption-only; the Dark screen hint 5.7:1 for three seconds). Peak full-bleed luminance 0.0083 in the app, 0.0094 on the landing. Reduced motion and reduced transparency through the two hooks in §5 on both platforms; brightness eases kept under reduced motion. No loop faster than 0.1 Hz; no luminance change on a large surface faster than 700 ms; the per-frame delta of the breath is under 0.2% of full scale. Roles: lamp and buttons are `button` with state labels; loudness, textures and the check-in chips are `radiogroup` / `radio` with `checked`; dials `adjustable` with value text and increment/decrement; the tab bar `tablist` / `tab` with `selected`; scenes, arcs, rims and the mark are decorative and hidden. The Status line and journal confirmations are polite live regions; the worse message is assertive. Sheets move focus to their title and return it. Web: Tab order equals visual order, `:focus-visible` ring everywhere, Space/Enter activate, arrows drive dials and segments, Escape closes sheets. Targets ≥ 44 pt with ≥ 8 pt gaps; `hitSlop` where visuals are smaller (timer pill, Skip, Back). Dynamic Type honoured with wrapping layouts. Colour is never the only signal: selected states pair colour with a border and a filled glyph; "worse" pairs rose with the hand glyph and words; journal bars carry labels and counts.
 
 ---
 
